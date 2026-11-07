@@ -769,7 +769,7 @@ function newState(code, mode, net, bot){
     names:{h:myName || 'მოთამაშე', g: bot ? HEROES[botHero].n + ' (ბოტი)' : ''},
     hero:{h:myHero, g: bot ? botHero : 'mage'},
     hp:{h:HPMAX, g:HPMAX, b:0}, bmax:0, sh:{h:0, g:0}, st:{h:0, g:0}, sc:{h:blankScore(), g:blankScore()},
-    cards:[], ev:[], ei:0, t0:0, dur: mode === 'boss' ? DUR_BOSS : DUR_DUEL, cd:0, fire:0, bn:0, end:null};
+    pc:{h:[], g:[]}, ev:[], ei:0, t0:0, dur: mode === 'boss' ? DUR_BOSS : DUR_DUEL, cd:0, fire:0, bn:0, end:null};
 }
 
 /* =================== host engine =================== */
@@ -784,7 +784,7 @@ const SEEN = (() => { try { const v = JSON.parse(store.get('bfa-seen') || '{}');
 function markSeen(id){ SEEN.m[id] = ++SEEN.n; if (SEEN.n % 5 === 0) store.set('bfa-seen', JSON.stringify(SEEN)); }
 addEventListener('pagehide', () => store.set('bfa-seen', JSON.stringify(SEEN)));
 function pickQ(tier){
-  const shown = new Set(S.cards.map(c => c && c.q)), r = recent[tier];
+  const shown = shownQs(), r = recent[tier];
   let pool = POOL[tier].filter(q => S.topic === 'all' || q.t === S.topic);
   if (pool.length < 5) pool = pool.concat(POOL[tier].filter(q => !pool.includes(q)).slice(0, 8)); // thin topic: borrow a few
   let cand = pool.filter(q => !shown.has(q.id) && !r.includes(q.id));
@@ -805,26 +805,29 @@ function botDelay(sl){
   const [a, b] = BOT_DELAY[sl], lead = S.hp.g - S.hp.h;
   return rnd(a, b) * (lead > 25 ? 1.5 : lead < -25 ? .85 : 1);   // the bot eases off when far ahead
 }
-function newCard(sl){
-  const tier = SLOT[sl].tier, now = Date.now(), shown = new Set(S.cards.map(c => c && c.q));
+/* Cards are per player (S.pc.h / S.pc.g). They start equal; a correct answer replaces that card for everyone
+   who still shows it (the race), a wrong answer replaces it only for the player who missed. */
+const shownQs = () => new Set(['h', 'g'].flatMap(x => (S.pc[x] || []).map(c => c && c.q)));
+function newCard(sl, who){
+  const tier = SLOT[sl].tier, now = Date.now(), shown = shownQs();
   let q = null, r = 0;
-  const ri = revenge.findIndex(x => x.tier === tier && now - x.at >= REVENGE_AFTER && !shown.has(x.q));
+  const ri = revenge.findIndex(x => x.tier === tier && now - x.at >= REVENGE_AFTER && !shown.has(x.q) && (!who || x.p === who));
   if (ri >= 0) { q = BANK[revenge[ri].q]; revenge.splice(ri, 1); r = 1; }
   if (!q) q = pickQ(tier);
-  if (S.bot) botNext[sl] = now + botDelay(sl);
   return {q:q.id, o:shuffle([...q.o.keys()]).join(''), lk:'', r, b:now};
 }
+function setCard(x, sl, c){ S.pc[x][sl] = {...c}; if (x === 'g' && S.bot) botNext[sl] = Date.now() + botDelay(sl); }
 function startCountdown(){
   S.gid = rid(); S.ph = 'count'; S.cd = Date.now() + 3300;
   S.hp = {h:HPMAX, g:HPMAX, b:0}; S.sh = {h:0, g:0}; S.st = {h:0, g:0};
   if (S.mode === 'boss') { S.bmax = S.net ? BOSS_HP_COOP : BOSS_HP_SOLO; S.hp.b = S.bmax; if (!S.net) S.hp.g = 0; }
-  S.sc = {h:blankScore(), g:blankScore()}; S.ev = []; S.ei = 0; S.cards = []; S.fire = 0; S.end = null;
+  S.sc = {h:blankScore(), g:blankScore()}; S.ev = []; S.ei = 0; S.pc = {h:[], g:[]}; S.fire = 0; S.end = null;
   seenN = new Set(); recent = {e:[], m:[], h:[]}; revenge = [];
   pushHost();
 }
 function beginFight(){
-  S.ph = 'fight'; S.t0 = Date.now(); S.cards = [];
-  for (let sl = 0; sl < 4; sl++) S.cards[sl] = newCard(sl);
+  S.ph = 'fight'; S.t0 = Date.now(); S.pc = {h:[], g:[]};
+  for (let sl = 0; sl < 4; sl++) { const c = newCard(sl); for (const x of ['h', 'g']) setCard(x, sl, c); }
   botCool = Date.now() + 3000;
   if (S.mode === 'boss') S.bn = Date.now() + 7000;
   pushEv({k:'go'});
@@ -842,7 +845,7 @@ function applyHit(tg, d, sc){
 function alive(p){ return S.hp[p] > 0; }
 function hostAnswer(p, sl, qid, choice){
   if (!S || S.ph !== 'fight' || !players().includes(p) || !alive(p)) return;
-  const card = S.cards[sl]; if (!card || card.q !== qid || card.lk.includes(p)) return;
+  const card = S.pc[p][sl]; if (!card || card.q !== qid) return;
   const q = BANK[qid], k = SLOT[sl].k, hero = heroOf(p), now = Date.now();
   if (choice === q.c) {
     const sc = S.sc[p]; S.st[p]++; sc.ok++;
@@ -864,14 +867,15 @@ function hostAnswer(p, sl, qid, choice){
       if (k === 'crit' && !res.b && !res.dg) sc.crit++;
     }
     pushEv(ev);
-    S.cards[sl] = newCard(sl);
+    const nc = newCard(sl);
+    for (const x of ['h', 'g']) if (S.pc[x][sl] && S.pc[x][sl].q === qid) setCard(x, sl, nc);
     checkEnd(p);
   } else {
     // wrong: no lock, no stall. The card is replaced at once; the question comes back later as a revenge card.
     S.st[p] = 0; S.sc[p].bad++;
-    revenge.push({q:qid, tier:SLOT[sl].tier, at:now});
+    revenge.push({q:qid, tier:SLOT[sl].tier, at:now, p});
     pushEv({k:'miss', by:p, sl, q:qid, pc:choice});
-    S.cards[sl] = newCard(sl);
+    setCard(p, sl, newCard(sl, p));   // only the player who missed gets a new card; the opponent keeps reading theirs
   }
   pushHost();
 }
@@ -908,8 +912,8 @@ function hostTick(){
   if (S.mode === 'boss' && now >= S.bn) { bossTurn(now); pushHost(); return; }
   if (S.bot && now >= botCool) {
     for (const sl of shuffle([0, 1, 2, 3])) {
-      const c = S.cards[sl];
-      if (!c || c.lk.includes('g') || now < botNext[sl]) continue;
+      const c = S.pc.g[sl];
+      if (!c || now < botNext[sl]) continue;
       if (SLOT[sl].k === 'heal' && S.hp.g >= 92) continue;
       if (SLOT[sl].k === 'shield' && S.sh.g) continue;
       const q = BANK[c.q], right = Math.random() < BOT_ACC[sl];
@@ -1022,7 +1026,7 @@ function resetHome(){
 /* =================== player actions =================== */
 function answer(sl, qid, c){
   if (!S || S.ph !== 'fight') return;
-  const card = S.cards[sl]; if (!card || card.q !== qid || card.lk.includes(role) || pend[sl] === qid || !alive(role)) return;
+  const card = S.pc[role][sl]; if (!card || card.q !== qid || pend[sl] === qid || !alive(role)) return;
   pend[sl] = qid; pendAt[sl] = Date.now(); lastPick[sl] = {q:qid, c}; sfx.click();
   if (role === 'h') hostAnswer('h', sl, qid, c);
   else {
@@ -1062,6 +1066,7 @@ function ingest(){
 }
 function showClaim(e){
   const q = BANK[e.q]; if (!q) return;
+  if (e.by !== role && (e.k === 'miss' || cardKey[e.sl] !== e.q)) return;   // the opponent's miss, or a card I no longer show: don't disturb my card
   const el = $('#claim-' + e.sl);
   if (el) {
     const miss = e.k === 'miss';
@@ -1832,10 +1837,10 @@ function update(sc){
   if (sc === 'fight') updateCards();
 }
 function updateCards(){
-  if (!S || !S.cards) return;
+  if (!S || !S.pc) return;
   const me = role, others = players().filter(p => p !== me);
   for (let sl = 0; sl < 4; sl++) {
-    const el = $('#qc-' + sl), cd = S.cards[sl]; if (!el) continue;
+    const el = $('#qc-' + sl), cd = S.pc[me] && S.pc[me][sl]; if (!el) continue;
     const body = $('.qbody', el);
     if (!cd) { if (cardKey[sl] !== 'wait') { cardKey[sl] = 'wait'; body.innerHTML = '<p class="note">კითხვა გამოჩნდება ათვლის შემდეგ.</p>'; } continue; }
     if (cardKey[sl] !== cd.q) {

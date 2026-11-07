@@ -1,0 +1,1641 @@
+<title>Bytefight არენა</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Georgian:wght@400;500;600;700;800&family=Russo+One&display=swap">
+<style>
+/* Layout: a sticky night arena on top (the fight), a calm light deck under it (the thinking). One deliberate look in every theme. */
+:root{
+  --panel:#E7EEEA; --card:#FFFFFF; --line:#D0DAD5; --ink:#1D2A2E; --muted:#5A6A6E; --soft:#F3F7F5;
+  --night:#14222B; --hud-ink:#EAF2EF;
+  --p1:#2FB39F; --p2:#6683E6;
+  --atk:#E2714A; --atk-soft:#FBE7DF; --heal:#36A46F; --heal-soft:#DDF1E6; --shield:#3E93C9; --shield-soft:#DDEDF7; --crit:#D9A21F; --crit-soft:#F8EDCF;
+  --rv:#8B5CC9; --rv-soft:#EEE5F8;
+  --bad:#C0564A; --bad-soft:#F6E1DD; --ok:#2F8F5E; --ok-soft:#DFF1E6; --code:#EEF3F1;
+  --kw:#2F7368; --str:#9A6234; --type:#4F64A8; --num:#8A4F8C; --com:#86948E;
+  --f-ui:"Noto Sans Georgian",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"Russo One","Noto Sans Georgian",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--panel)}
+body{color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--night)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:default}
+:focus-visible{outline:2px solid var(--p1);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--code);border:1px solid var(--line);border-radius:5px;padding:.05em .35em}
+
+/* ---------- arena ---------- */
+.arena{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;height:clamp(230px,44vh,430px);background:var(--night);overflow:hidden;box-shadow:0 6px 18px -10px rgba(10,20,25,.5)}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hud{position:absolute;inset:0 0 auto;display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:start;padding-top:10px;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));pointer-events:none;color:var(--hud-ink)}
+.side{display:flex;flex-direction:column;gap:8px;min-width:0}
+.side.r{align-items:flex-end}
+.hp{display:flex;flex-direction:column;gap:4px;min-width:0;max-width:330px;width:100%}
+.side.r .hp{align-items:flex-end;text-align:right}
+.hp-top{display:flex;align-items:baseline;gap:8px;width:100%;min-width:0}
+.side.r .hp-top{flex-direction:row-reverse}
+.nm{font-weight:700;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.you{font-size:.68rem;font-weight:600;border:1px solid currentColor;border-radius:999px;padding:0 7px;opacity:.85;flex:none;margin-left:4px}
+.hpn{font-family:var(--f-num);font-size:.95rem;margin-left:auto;font-variant-numeric:tabular-nums;flex:none}
+.side.r .hpn{margin-left:0;margin-right:auto}
+.bar{position:relative;height:12px;width:100%;border-radius:7px;background:rgba(255,255,255,.12);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.hp.mini .bar{height:8px}
+.hp.mini .nm,.hp.mini .hpn{font-size:.8rem}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:7px}
+.side.r .bar i{inset:0 0 0 auto}
+.bar .chip{background:#F6E7C8;transition:width .55s ease .28s}
+.bar .fill{transition:width .18s ease-out;background:linear-gradient(90deg,#1F8E7E,var(--p1))}
+.side.r .bar .fill{background:linear-gradient(270deg,#4662C4,var(--p2))}
+.hp.boss .bar{height:15px}
+.hp.boss .bar .fill{background:linear-gradient(270deg,#6B3F8E,#B070D8)!important}
+.bar.low .fill{background:linear-gradient(90deg,#B9513F,#E2714A)!important}
+.sub{display:flex;gap:6px;align-items:center;font-size:.74rem;opacity:.85;min-height:18px}
+.side.r .sub{flex-direction:row-reverse}
+.pips{display:flex;gap:3px}
+.pips b{width:9px;height:9px;border-radius:3px;background:rgba(255,255,255,.16)}
+.pips b.on{background:#F0B84A;box-shadow:0 0 8px #F0B84A}
+.pips.full b{background:#FF8A4C;box-shadow:0 0 10px #FF8A4C}
+.shd{display:none;font-size:.7rem;font-weight:700;color:#BFE3FA;border:1px solid rgba(160,210,245,.6);border-radius:999px;padding:0 7px}
+.shd.on{display:inline-block}
+.hp.shake{animation:hshake .32s}
+@keyframes hshake{0%,100%{transform:none}25%{transform:translateX(-5px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
+.clock{font-family:var(--f-num);font-size:1.25rem;padding:3px 12px;border-radius:10px;background:rgba(6,14,18,.45);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);font-variant-numeric:tabular-nums;text-align:center;min-width:72px}
+.clock.hot{color:#FFB070;box-shadow:inset 0 0 0 1px rgba(255,150,90,.5)}
+.clock:empty{visibility:hidden}
+.banner{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%) scale(.9);font-family:var(--f-num);font-size:clamp(1.6rem,6vw,3.2rem);color:#FFF6E3;text-shadow:0 3px 0 rgba(0,0,0,.25),0 0 26px rgba(255,190,110,.5);opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .25s,transform .35s cubic-bezier(.2,1.6,.4,1);text-align:center}
+.banner.ka{font-family:var(--f-ui);font-weight:800}
+.banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.banner.small{font-size:clamp(1rem,3.6vw,1.6rem);white-space:normal;max-width:90%}
+.snd{position:absolute;right:max(10px,env(safe-area-inset-right,0px));bottom:10px;display:flex;gap:6px}
+.snd button{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(6,14,18,.45);color:var(--hud-ink);display:grid;place-items:center;padding:0}
+.snd button[aria-pressed="false"]{opacity:.5}
+.snd svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.emotes{position:absolute;left:max(10px,env(safe-area-inset-left,0px));bottom:10px;display:flex;gap:6px}
+.emotes button{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(6,14,18,.45);font-size:1.15rem;line-height:1;padding:0;transition:transform .1s}
+.emotes button:active{transform:scale(.9)}
+.emotes[hidden]{display:none}
+
+/* ---------- panel ---------- */
+.panel{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 48px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--card);padding:9px 17px;border-radius:999px;font-weight:600;transition:transform .12s,border-color .2s,filter .2s}
+.btn:hover:not(:disabled){border-color:var(--ink)}
+.btn:active:not(:disabled){transform:translateY(1px) scale(.98)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.primary:hover:not(:disabled){filter:brightness(1.25)}
+.btn:disabled{opacity:.5}
+.link{background:none;border:0;padding:4px 0;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 13px;min-width:0}
+input[type=text]:focus{outline:none;border-color:var(--p1);box-shadow:0 0 0 3px rgba(47,179,159,.2)}
+.err{color:var(--bad);min-height:1.4em;font-size:.92rem}
+.note{color:var(--muted);font-size:.9rem}
+.eyebrow{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ico{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.lbl{font-weight:700;font-size:.92rem}
+
+.home{display:flex;flex-direction:column;gap:18px}
+.intro{display:flex;flex-direction:column;gap:6px}
+.intro h1{font-weight:800;font-size:clamp(1.6rem,4.5vw,2.3rem);letter-spacing:-.01em;text-wrap:balance}
+.intro p{color:var(--muted);max-width:66ch}
+.setup{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:16px;align-items:start}
+.field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.heroes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.hero{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);min-width:0;position:relative}
+.hero i{width:16px;height:16px;border-radius:50%;display:block;margin-bottom:4px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.12)}
+.hero b{font-size:.95rem}
+.hero span{font-size:.78rem;color:var(--muted)}
+.hero small{font-size:.76rem;color:var(--ink);font-weight:600}
+.hero[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chipb{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:.86rem;font-weight:500}
+.chipb[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.act{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.act h2{font-size:1.02rem;font-weight:700}
+.act p{color:var(--muted);font-size:.88rem;flex:1}
+.act .row{display:flex;gap:8px;flex-wrap:wrap}
+.act.boss{background:linear-gradient(160deg,#F3ECFA,#FFFFFF 60%);border-color:#D9CBEA}
+.join-row{display:flex;gap:8px;flex-wrap:wrap}
+.join-row input{flex:1 1 100px;text-transform:uppercase;letter-spacing:.28em;font-family:var(--f-mono)}
+.rules{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.rule{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:var(--soft);border:1px solid var(--line);min-width:0}
+.rule .ri{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:none;color:#fff}
+.rule b{display:block;font-size:.93rem}
+.rule small{color:var(--muted);font-size:.82rem;display:block}
+.rule.atk .ri{background:var(--atk)} .rule.heal .ri{background:var(--heal)} .rule.shield .ri{background:var(--shield)} .rule.crit .ri{background:var(--crit)}
+.extra{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.88rem;color:var(--muted)}
+.extra span{display:inline-flex;gap:6px;align-items:center}
+.extra i{width:8px;height:8px;border-radius:2px;display:inline-block;background:#F0A040}
+.medals{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}
+.medal{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;padding:10px 6px;border-radius:12px;background:var(--card);border:1px solid var(--line);min-width:0}
+.medal .me{font-size:1.5rem;line-height:1.2}
+.medal b{font-size:.78rem}
+.medal small{font-size:.7rem;color:var(--muted)}
+.medal.off{opacity:.45;filter:grayscale(1)}
+.medal.new{border-color:var(--crit);box-shadow:0 0 0 3px var(--crit-soft)}
+
+.lobby{display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center;padding-top:6px}
+.room-code{font-family:var(--f-mono);font-size:clamp(2rem,9vw,3rem);letter-spacing:.3em;padding-left:.3em;font-weight:500}
+.vs{display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;font-weight:700;font-size:1.1rem}
+.vs .v{color:var(--muted);font-weight:500;font-size:.9rem}
+.vs .p1{color:#1E8A7B} .vs .p2{color:#4C67C9}
+.vs .wait{color:var(--muted);font-weight:500}
+.dots::after{content:"";animation:dots 1.4s steps(4) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+
+/* fight */
+.fight{display:flex;flex-direction:column;gap:12px}
+.learn{display:flex;gap:12px;align-items:flex-start;padding:10px 14px;border-radius:12px;background:var(--card);border:1px solid var(--line);min-height:48px}
+.learn .li{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:var(--ok-soft);color:var(--ok)}
+.learn .lt{min-width:0;font-size:.9rem}
+.learn .lt b{display:block;font-size:.88rem}
+.learn .lt span{color:var(--muted)}
+.learn.pop{animation:fresh .35s ease-out}
+.tabs{display:none;gap:6px}
+.tab{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 4px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:.84rem;position:relative;min-width:0}
+.tab .tv{font-family:var(--f-num);font-size:.76rem;opacity:.75}
+.tab.atk{--c:var(--atk)} .tab.heal{--c:var(--heal)} .tab.shield{--c:var(--shield)} .tab.crit{--c:var(--crit)}
+.tab svg{color:var(--c)}
+.tab[aria-selected="true"]{border-color:var(--c);box-shadow:inset 0 -3px 0 var(--c)}
+.tab.lockd::after{content:"";position:absolute;top:6px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--bad)}
+.tab.rvd::before{content:"×2";position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:.62rem;font-family:var(--f-num);background:var(--rv);color:#fff;border-radius:999px;padding:0 6px}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
+.qc{--c:var(--atk);--cs:var(--atk-soft);position:relative;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:14px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.qc.heal{--c:var(--heal);--cs:var(--heal-soft)} .qc.shield{--c:var(--shield);--cs:var(--shield-soft)} .qc.crit{--c:var(--crit);--cs:var(--crit-soft)}
+.qc.rv{box-shadow:0 0 0 2px var(--rv)}
+.qc header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--cs);font-weight:700;flex-wrap:wrap}
+.qc header svg{color:var(--c)}
+.qc .val{font-family:var(--f-num);font-size:.9rem;color:var(--c);filter:brightness(.85)}
+.qc .rvb{display:none;font-size:.7rem;font-weight:700;color:#fff;background:var(--rv);border-radius:999px;padding:1px 8px}
+.qc.rv .rvb{display:inline-block}
+.qc .tag{margin-left:auto;font-size:.74rem;font-weight:600;color:var(--bad);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.qbody{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.qc.fresh .qbody{animation:fresh .35s ease-out}
+@keyframes fresh{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.qp{font-weight:600;font-size:.98rem;line-height:1.5}
+pre.code{margin:0;background:var(--code);border:1px solid var(--line);border-radius:9px;padding:9px 12px;overflow-x:auto;font-family:var(--f-mono);font-size:.78rem;line-height:1.6;white-space:pre}
+.t-kw{color:var(--kw);font-weight:500} .t-str{color:var(--str)} .t-type{color:var(--type)} .t-num{color:var(--num)} .t-com{color:var(--com);font-style:italic}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:8px 10px;transition:border-color .15s,background .15s,transform .1s}
+.opt:hover:not(:disabled){border-color:var(--c);background:#fff}
+.opt:active:not(:disabled){transform:scale(.985)}
+.opt .ok{flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-family:var(--f-mono);font-size:.76rem;background:#fff;border:1px solid var(--line);color:var(--muted)}
+.opt .ot{flex:1;min-width:0;overflow-wrap:anywhere;font-size:.92rem}
+.opt:disabled{opacity:.55}
+.opt.picked{border-color:var(--ink);opacity:1}
+.qc.locked .opt.picked{border-color:var(--bad);background:var(--bad-soft)}
+.lockmsg{display:none;font-size:.85rem;color:#8E3B31;background:var(--bad-soft);border-radius:8px;padding:8px 10px}
+.lockmsg b{display:block;color:var(--bad)}
+.qc.locked .lockmsg{display:block}
+.qc.shake{animation:hshake .35s}
+.claim{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;padding:16px;background:rgba(255,255,255,.9);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s}
+.claim.show{opacity:1}
+.claim b{font-size:1.05rem}
+.claim span{font-size:.86rem;color:var(--muted)}
+.claim.me b{color:var(--ok)} .claim.op b{color:var(--atk)}
+.hint{font-size:.85rem;color:var(--muted);text-align:center}
+
+/* end */
+.endp{display:flex;flex-direction:column;gap:18px;align-items:center;text-align:center}
+.endp h2{font-weight:800;font-size:clamp(1.5rem,4.5vw,2.1rem)}
+.res{display:grid;gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card);width:min(100%,600px);font-size:.92rem}
+.res div{padding:8px 14px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;min-width:0}
+.res div.l{text-align:left;color:var(--muted)}
+.res div.hd{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.res div.last{border-bottom:0}
+.earned{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.earned .medal{flex-direction:row;gap:8px;padding:8px 12px}
+.earned .medal small{font-size:.74rem}
+.review{width:min(100%,760px);display:flex;flex-direction:column;gap:10px;text-align:left}
+.review h3{font-size:1.05rem;font-weight:800;text-align:center}
+.rv-item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.rv-item .q{font-weight:600}
+.rv-item .yours,.rv-item .right{font-size:.88rem;border-radius:8px;padding:7px 10px}
+.rv-item .yours{background:var(--bad-soft);color:#8E3B31}
+.rv-item .right{background:var(--ok-soft);color:#1F5E3D}
+.rv-item .yours b,.rv-item .right b{display:block}
+.end-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+@media (max-width:1119px){
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .medals{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media (max-width:860px){ .setup{grid-template-columns:1fr} .rules{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:760px){
+  .tabs{display:flex}
+  .cards{grid-template-columns:1fr}
+  .cards[data-tab="0"] .qc:not([data-sl="0"]),
+  .cards[data-tab="1"] .qc:not([data-sl="1"]),
+  .cards[data-tab="2"] .qc:not([data-sl="2"]),
+  .cards[data-tab="3"] .qc:not([data-sl="3"]){display:none}
+  .arena{height:clamp(210px,38vh,330px)}
+  .nm{font-size:.85rem}
+  .clock{font-size:1.05rem;min-width:60px;padding:2px 8px}
+  .sub .rl{display:none}
+}
+@media (max-width:560px){
+  .actions,.rules{grid-template-columns:1fr}
+  .heroes{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tab .tv{display:none}
+  .emotes button{width:32px;height:32px;font-size:1rem}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+
+<div class="arena" id="arena">
+  <canvas id="cv" aria-label="საბრძოლო არენა" role="img"></canvas>
+  <div class="hud" id="hud"></div>
+  <div class="banner" id="banner"></div>
+  <div class="emotes" id="emotes" hidden></div>
+  <div class="snd">
+    <button id="btn-sfx" aria-pressed="true" aria-label="ხმოვანი ეფექტები"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg></button>
+    <button id="btn-music" aria-pressed="false" aria-label="მუსიკა"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg></button>
+  </div>
+</div>
+<main class="panel" id="view" aria-live="polite"></main>
+
+<script>
+'use strict';
+/* =================== game constants =================== */
+const HPMAX = 100, ATK = 12, HEAL = 10, CRIT = 24, DUR_DUEL = 150000, DUR_BOSS = 180000, FIRE_AT = 30000;
+const BOSS_DMG = 10, BOSS_HP_SOLO = 220, BOSS_HP_COOP = 380, REVENGE_AFTER = 15000, FAST_MS = 4000;
+const SLOT = [
+  {k:'atk',    name:'შეტევა',    tier:'e'},
+  {k:'heal',   name:'სიცოცხლე',  tier:'m'},
+  {k:'shield', name:'ფარი',      tier:'m'},
+  {k:'crit',   name:'კრიტიკული', tier:'h'},
+];
+const HEROES = {
+  knight:{n:'ბიტი', role:'რაინდი',   ab:'შეტევა +3',          col:'#2FB39F', col2:'#1A7A6C', alt:['#E08A3C', '#A35A1E'], style:'melee'},
+  mage:  {n:'ნალი', role:'ჯადოქარი', ab:'კრიტიკული +6',       col:'#6683E6', col2:'#3E55A8', alt:['#B06AD8', '#7A3FA0'], style:'ranged', orb:'#BFD0FF'},
+  healer:{n:'ლუმა', role:'მკურნალი', ab:'სიცოცხლე +5',        col:'#EEF1EE', col2:'#3BA673', alt:['#F3E6CC', '#C9922F'], style:'ranged', orb:'#B8F5CF'},
+  ninja: {n:'ჯინი', role:'ნინძა',    ab:'25%: აიცილებს დარტყმას', col:'#3A4058', col2:'#E0574A', alt:['#4D3A58', '#3FB0C8'], style:'melee'},
+};
+const HERO_KEYS = Object.keys(HEROES);
+const TOPICS = [
+  {id:'all',  n:'ყველა თემა'},
+  {id:'base', n:'ტიპები და ოპერატორები'},
+  {id:'flow', n:'პირობები და ციკლები'},
+  {id:'arr',  n:'მასივები და სტრიქონები'},
+  {id:'oop',  n:'კლასები და OOP'},
+  {id:'col',  n:'კოლექციები და LINQ'},
+];
+const MEDALS = [
+  {id:'flawless', e:'🎯', n:'უშეცდომო',          d:'5+ სწორი, 0 შეცდომა',            ok:(s) => s.bad === 0 && s.ok >= 5},
+  {id:'crit',     e:'⚡', n:'ელვის ოსტატი',      d:'3 კრიტიკული ერთ ბრძოლაში',        ok:(s) => s.crit >= 3},
+  {id:'fast',     e:'🏃', n:'სწრაფი ხელი',       d:'3 სწორი პასუხი 4 წამში',          ok:(s) => s.fast >= 3},
+  {id:'comeback', e:'🔄', n:'დაბრუნება',         d:'მოიგე, თუმცა 20 HP-მდე ჩამოხვედი', ok:(s, won) => won && s.minHp <= 20},
+  {id:'healer',   e:'💚', n:'მკურნალი',          d:'30+ სიცოცხლე აღიდგინე',           ok:(s) => s.heal >= 30},
+  {id:'wall',     e:'🛡️', n:'ფარის ოსტატი',      d:'2 დარტყმა დაბლოკე',               ok:(s) => s.blk >= 2},
+  {id:'revenge',  e:'🔁', n:'რევანში',           d:'რევანშის ბარათს სწორად უპასუხე',  ok:(s) => s.rv >= 1},
+  {id:'bug',      e:'🐞', n:'ბაგის დამმარცხებელი', d:'დაამარცხე ბოსი ბაგი',            ok:(s, won, boss) => boss && won},
+];
+const EMOTES = ['👏', '😮', '😤', '🔥'];
+const ICON = {
+  atk:'<svg class="ico" viewBox="0 0 24 24"><path d="M14.5 4H20v5.5L9.5 20l-5.5-5.5z"/><path d="M7 13l4 4M3.5 20.5l2-2"/></svg>',
+  heal:'<svg class="ico" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10.2A4.1 4.1 0 0 1 12 7.4a4.1 4.1 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z"/></svg>',
+  shield:'<svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z"/></svg>',
+  crit:'<svg class="ico" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></svg>',
+  bulb:'<svg class="ico" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2h5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg>',
+};
+
+/* =================== question bank ===================
+   t: topic · p: prompt · code: optional snippet · o: options · c: correct index
+   x: why the right answer is right · w: why each wrong option is wrong ('' for the right one) */
+const E = [
+  {t:'base', p:'რომელი ტიპი ინახავს მთელ რიცხვს?', o:['int','string','bool','char'], c:0, x:'`int` ინახავს მთელ რიცხვს, მაგალითად `42` ან `-7`.', w:['','`string` ტექსტს ინახავს, მაგალითად "42".','`bool` მხოლოდ true ან false-ია.','`char` ერთ სიმბოლოს ინახავს, მაგალითად \'4\'.']},
+  {t:'base', p:'რას დაბეჭდავს `Console.WriteLine(2 + 3 * 2);`?', o:['10','8','12'], c:1, x:'გამრავლება შეკრებამდე სრულდება: 3 * 2 = 6, მერე 2 + 6 = 8.', w:['10 გამოვიდოდა ფრჩხილებით: (2 + 3) * 2.','','12 არცერთი რიგით არ გამოდის: შეამოწმე, რომელი მოქმედება სრულდება პირველად.']},
+  {t:'base', p:'რომელი ტიპი ინახავს `true`/`false`-ს?', o:['int','char','bool','double'], c:2, x:'`bool` ლოგიკური ტიპია: მხოლოდ true ან false.', w:['`int` რიცხვია, არა ლოგიკური მნიშვნელობა.','`char` ერთი სიმბოლოა.','','`double` წილადი რიცხვია.']},
+  {t:'base', p:'რას უდრის `10 % 3`?', o:['3','1','0'], c:1, x:'`%` ნაშთს აბრუნებს: 10 = 3·3 + 1, ნაშთი 1-ია.', w:['3 არის 10 / 3-ის შედეგი (განაყოფი), არა ნაშთი.','','0 იქნებოდა, თუ 10 3-ზე უნაშთოდ გაიყოფოდა.']},
+  {t:'base', p:'რომელი ოპერატორი ამოწმებს ტოლობას?', o:['=','==','=>'], c:1, x:'`==` ორ მნიშვნელობას ადარებს და bool-ს აბრუნებს.', w:['`=` მნიშვნელობას ანიჭებს: x = 5.','','`=>` lambda-ს ისარია: x => x * 2.']},
+  {t:'base', p:'რას დაბეჭდავს `Console.WriteLine("Hi" + 5);`?', o:['Hi 5','Hi5','შეცდომა'], c:1, x:'string-თან `+` ტექსტს აერთებს: 5 ხდება "5" და ემატება ჰარის გარეშე.', w:['ჰარი თავისით არ ემატება, ჩვენ თვითონ უნდა დავწეროთ "Hi " + 5.','','string-ისა და int-ის შეერთება დაშვებულია, int ავტომატურად ტექსტად იქცევა.']},
+  {t:'base', p:'რომელი ტიპი ინახავს წილად რიცხვს, მაგალითად 3.14?', o:['int','double','bool'], c:1, x:'`double` წილად რიცხვებს ინახავს.', w:['`int` წილად ნაწილს ვერ შეინახავს: 3.14 გახდებოდა 3.','','`bool` მხოლოდ true/false-ია.']},
+  {t:'base', p:'`int x = 5; x++;` რას უდრის `x`?', o:['5','6','4'], c:1, x:'`x++` x-ს ერთით ზრდის: 5 → 6.', w:['++ მნიშვნელობას ცვლის, x აღარ არის 5.','','4 იქნებოდა `x--`-ით.']},
+  {t:'base', p:'რას უდრის `!true`?', o:['true','false','null'], c:1, x:'`!` ლოგიკურ მნიშვნელობას აბრუნებს საპირისპიროდ.', w:['`!` ცვლის მნიშვნელობას, true ვერ დარჩება true.','','bool ვერ იქნება null (თუ `bool?` არ არის).']},
+  {t:'base', p:'რას უდრის `5 > 3 && 2 > 4`?', o:['true','false'], c:1, x:'`&&` მოითხოვს, ორივე მხარე იყოს true. 2 > 4 მცდარია, ამიტომ შედეგი false-ია.', w:['true იქნებოდა `||`-ით, რომელსაც ერთი true საკმარისია.','']},
+  {t:'base', p:'`char c = \'A\';` რომელი ტიპია `c`?', o:['string','char','int'], c:1, x:'ერთმაგი ბრჭყალი (\'A\') ერთ სიმბოლოს ნიშნავს, ანუ char-ს.', w:['string ორმაგ ბრჭყალებში იწერება: "A".','','int რიცხვია, თუმცა char-ს რიცხვითი კოდიც აქვს (65).']},
+  {t:'base', p:'რომელი სიმბოლოთი მთავრდება ბრძანება C#-ში?', o:[':',';','.'], c:1, x:'ყოველი ბრძანება `;`-ით მთავრდება.', w:['`:` გამოიყენება მემკვიდრეობაში და switch-ში.','','`.` წევრთან წვდომაა: Console.WriteLine.']},
+  {t:'base', p:'რას დააბრუნებს `Math.Max(4, 9)`?', o:['4','9','13'], c:1, x:'`Math.Max` ორიდან უდიდესს აბრუნებს.', w:['4 დააბრუნებდა `Math.Min`.','','13 ჯამია, Max კი არ კრებს.']},
+  {t:'flow', p:'რა უწერია `if`-ის საპირისპირო ბლოკს?', o:['else','then','elif'], c:0, x:'`else` სრულდება, როცა if-ის პირობა მცდარია.', w:['','`then` C#-ში არ არსებობს.','`elif` Python-ისაა, C#-ში `else if` იწერება.']},
+  {t:'flow', p:'რომელი ციკლი გადის კოლექციის ყველა ელემენტზე?', o:['foreach','switch','if'], c:0, x:'`foreach (var x in list)` ყველა ელემენტს თანმიმდევრობით იღებს.', w:['','`switch` მნიშვნელობის მიხედვით ირჩევს ერთ ვარიანტს, ციკლი არ არის.','`if` ერთხელ ამოწმებს პირობას.']},
+  {t:'flow', p:'რამდენჯერ შესრულდება `for (int i = 0; i < 3; i++)`?', o:['2','3','4'], c:1, x:'i = 0, 1, 2 — სამჯერ. i = 3-ზე პირობა მცდარია.', w:['0-დანაც ითვლება: 0, 1, 2 სამი მნიშვნელობაა.','','4-ჯერ იქნებოდა `i <= 3`-ით.']},
+  {t:'flow', p:'რომელი სიტყვა წყვეტს ციკლს მაშინვე?', o:['stop','break','continue'], c:1, x:'`break` ციკლიდან მაშინვე გადის.', w:['`stop` C#-ში არ არსებობს.','','`continue` მხოლოდ მიმდინარე იტერაციას გამოტოვებს და ციკლი გრძელდება.']},
+  {t:'flow', p:'`while (false) { ... }` — რამდენჯერ შესრულდება სხეული?', o:['0','1','უსასრულოდ'], c:0, x:'while ჯერ პირობას ამოწმებს. false-ზე სხეული არც ერთხელ არ სრულდება.', w:['','ერთხელ მაინც `do-while` შეასრულებდა.','უსასრულოდ `while (true)` იქნებოდა.']},
+  {t:'arr', p:'მასივის პირველი ელემენტის ინდექსია…', o:['1','0','-1'], c:1, x:'C#-ში ინდექსები 0-დან იწყება: a[0] პირველია.', w:['1 მეორე ელემენტია.','','-1 ინდექსი მასივში დაუშვებელია.']},
+  {t:'arr', p:'`int[] a = new int[3];` რამდენი ელემენტია?', o:['2','3','4'], c:1, x:'new int[3] ზუსტად 3 ელემენტს ქმნის: a[0], a[1], a[2].', w:['ბოლო ინდექსი 2-ია, მაგრამ ელემენტი 3-ია.','','მასივი ზუსტად იმდენს ქმნის, რამდენსაც მიუთითებ.']},
+  {t:'arr', p:'რას აბრუნებს `"abc".ToUpper()`?', o:['"Abc"','"ABC"','"abc"'], c:1, x:'ToUpper ყველა ასოს დიდად აქცევს.', w:['მხოლოდ პირველ ასოს ToUpper არ ცვლის, ყველას ცვლის.','','ToUpper ახალ, დიდასოებიან string-ს აბრუნებს.']},
+  {t:'arr', p:'`string name = "Ana";` რას უდრის `name.Length`?', o:['2','3','4'], c:1, x:'Length სიმბოლოების რაოდენობაა: A, n, a — 3.', w:['Length ბოლო ინდექსი (2) არ არის, ის რაოდენობაა.','','ბრჭყალები სტრიქონის ნაწილი არ არის.']},
+  {t:'arr', p:'`int[] a = { 5, 8, 2 };` რას უდრის `a[1]`?', o:['5','8','2'], c:1, x:'ინდექსი 0-დან იწყება: a[0] = 5, a[1] = 8.', w:['5 არის a[0].','','2 არის a[2].']},
+  {t:'oop', p:'რომელი სიტყვით იქმნება ახალი ობიექტი?', o:['make','new','class'], c:1, x:'`new Book()` ქმნის Book კლასის ობიექტს.', w:['`make` C#-ში არ არსებობს.','','`class` კლასს აღწერს, ობიექტს არ ქმნის.']},
+  {t:'oop', p:'რომელი მოდიფიკატორი ხსნის წევრს ყველასთვის?', o:['private','public','protected'], c:1, x:'`public` წევრი ყველგან ჩანს.', w:['`private` მხოლოდ კლასის შიგნით ჩანს.','','`protected` მხოლოდ კლასსა და მის მემკვიდრეებში ჩანს.']},
+  {t:'oop', p:'რას აბრუნებს `void` მეთოდი?', o:['0-ს','null-ს','არაფერს'], c:2, x:'void ნიშნავს, რომ მეთოდი მნიშვნელობას არ აბრუნებს.', w:['0-ის დასაბრუნებლად მეთოდი int უნდა იყოს.','null-ის დასაბრუნებლად reference ტიპი უნდა იყოს.','']},
+  {t:'col', p:'რომელი კოლექციის ზომა იცვლება ავტომატურად?', o:['int[]','List<int>'], c:1, x:'List-ს Add-ით დაუსრულებლად ამატებ, ზომას თვითონ ზრდის.', w:['მასივის ზომა შექმნისას ფიქსირდება და მერე არ იცვლება.','']},
+  {t:'col', p:'რომელი მეთოდი ამატებს ელემენტს `List`-ში?', o:['Push','Add','Put'], c:1, x:'`list.Add(5)` ელემენტს ბოლოში ამატებს.', w:['Push Stack-ის მეთოდია, List-ის არა.','','Put List-ს არ აქვს.']},
+  {t:'col', p:'`var l = new List<int> { 4, 7 };` რას უდრის `l.Count`?', o:['1','2','7'], c:1, x:'Count ელემენტების რაოდენობაა: 4 და 7 — ორი.', w:['Count ბოლო ინდექსი არ არის, ის რაოდენობაა.','','7 ერთ-ერთი ელემენტია, არა რაოდენობა.']},
+];
+const M = [
+  {t:'base', p:'`string` რომელი ტიპია?', o:['Value type','Reference type'], c:1, x:'string კლასია (System.String), ანუ reference type. ის immutable-ია, ამიტომ ზოგჯერ value type-ივით იქცევა.', w:['value type-ებია int, double, bool, struct.','']},
+  {t:'base', p:'რას დაბეჭდავს `Console.WriteLine(7 / 2);`?', o:['3.5','3','4'], c:1, x:'ორივე int-ია, ამიტომ გაყოფაც მთელრიცხვითია და წილადი იკარგება.', w:['3.5 გამოვიდოდა 7.0 / 2-ით, როცა ერთი მაინც double-ია.','','C# არ ამრგვალებს, უბრალოდ წილად ნაწილს ჭრის.']},
+  {t:'base', p:'რას დაბეჭდავს `Console.WriteLine("5" + 3);`?', o:['8','53','შეცდომა'], c:1, x:'"5" ტექსტია, ამიტომ + აერთებს: "5" + "3" = "53".', w:['8 იქნებოდა 5 + 3-ით, ბრჭყალების გარეშე.','','string + int დაშვებულია.']},
+  {t:'base', p:'`int? x = null; int y = x ?? 5;` რას უდრის `y`?', o:['0','5','null'], c:1, x:'`??` მარჯვენა მხარეს აბრუნებს, როცა მარცხენა null-ია.', w:['null არ ხდება ავტომატურად 0.','','y არის int და null-ს ვერ შეინახავს.']},
+  {t:'base', p:'`var` როდის ადგენს ცვლადის ტიპს?', o:['გაშვებისას','კომპილაციისას'], c:1, x:'var-ის ტიპს კომპილატორი ადგენს მინიჭებული მნიშვნელობიდან და მერე აღარ იცვლება.', w:['გაშვებისას ტიპის შეცვლა `dynamic`-ს შეუძლია, var-ს არა.','']},
+  {t:'base', p:'რომელ ველს შეიძლება მნიშვნელობა კონსტრუქტორში მიენიჭოს?', o:['const','readonly'], c:1, x:'readonly ველი დეკლარაციისას ან კონსტრუქტორში ივსება.', w:['const კომპილაციის დროს უნდა იყოს ცნობილი და მხოლოდ დეკლარაციისას იწერება.','']},
+  {t:'base', p:'`double d = 5 / 2;` რას უდრის `d`?', o:['2.5','2','3'], c:1, x:'ჯერ 5 / 2 ითვლება int-ებით = 2, მერე ხდება double 2.0.', w:['2.5-ისთვის საჭიროა 5.0 / 2 ან (double)5 / 2.','','C# გაყოფისას არ ამრგვალებს ზემოთ.']},
+  {t:'flow', p:'რომელი ციკლი სრულდება მინიმუმ ერთხელ?', o:['while','for','do-while'], c:2, x:'do-while პირობას სხეულის შემდეგ ამოწმებს.', w:['while ჯერ ამოწმებს და შეიძლება არც ერთხელ შესრულდეს.','for-იც ჯერ პირობას ამოწმებს.','']},
+  {t:'flow', p:'`try/catch/finally`-ში რომელი ბლოკი სრულდება ყოველთვის?', o:['try','catch','finally'], c:2, x:'finally სრულდება შეცდომის მიუხედავად. ხშირად რესურსის დასახურად.', w:['try შეიძლება შუაში შეწყდეს შეცდომის გამო.','catch მხოლოდ შეცდომისას სრულდება.','']},
+  {t:'flow', p:'`int x = 7; var r = x > 5 ? "დიდი" : "პატარა";` რას უდრის `r`?', o:['"დიდი"','"პატარა"','შეცდომა'], c:0, x:'`?:` თუ პირობა true-ია, პირველს აბრუნებს. 7 > 5 true-ია.', w:['','"პატარა" მაშინ იქნებოდა, თუ x ≤ 5.','ეს სწორი სინტაქსია, ternary ოპერატორი.']},
+  {t:'flow', p:'რას აკეთებს `continue` ციკლში?', o:['ციკლს წყვეტს','მიმდინარე იტერაციას გამოტოვებს','მეთოდიდან გადის'], c:1, x:'continue პირდაპირ შემდეგ იტერაციაზე გადადის.', w:['ციკლს break წყვეტს.','','მეთოდიდან return გადის.']},
+  {t:'flow', p:'რომელი ბლოკი სრულდება `switch`-ში, თუ არცერთი case არ დაემთხვა?', o:['default','else','otherwise'], c:0, x:'`default:` ყველა დანარჩენ შემთხვევას იჭერს.', w:['','else if-ის ნაწილია, switch-ის არა.','otherwise C#-ში არ არსებობს.']},
+  {t:'arr', p:'რას აბრუნებს `"hello".Substring(1, 3)`?', o:['"hel"','"ell"','"ello"'], c:1, x:'იწყება ინდექს 1-დან (e) და იღებს 3 სიმბოლოს: e, l, l.', w:['"hel" ინდექს 0-დან დაიწყებდა.','','"ello" დასაწყისიდან ბოლომდე იქნებოდა: Substring(1).']},
+  {t:'arr', p:'რას აბრუნებს `"a-b-c".Split(\'-\').Length`?', o:['2','3','5'], c:1, x:'Split ტირეებზე ჭრის: "a", "b", "c" — 3 ნაწილი.', w:['2 ტირის რაოდენობაა, ნაწილი კი ერთით მეტია.','','5 სიმბოლოების რაოდენობაა.']},
+  {t:'arr', p:'რას აბრუნებს `"Hello".IndexOf(\'l\')`?', o:['2','3','-1'], c:0, x:'IndexOf პირველ დამთხვევას პოულობს: H=0, e=1, l=2.', w:['','3 მეორე l-ია, IndexOf კი პირველს აბრუნებს.','-1 ბრუნდება, როცა სიმბოლო საერთოდ არ არის.']},
+  {t:'arr', p:'`int[] a = new int[2];` რას უდრის `a[0]`?', o:['0','null','შეცდომა'], c:0, x:'int-ის default მნიშვნელობა 0-ია, ამიტომ ახალი მასივი 0-ებით ივსება.', w:['','int ვერ იქნება null. null string[]-ის ელემენტებში იქნებოდა.','ინდექსი 0 არსებობს, შეცდომა არ იქნება.']},
+  {t:'oop', p:'კლასის წევრს მოდიფიკატორის გარეშე რა წვდომა აქვს?', o:['public','internal','private'], c:2, x:'კლასის წევრი default-ად private-ია.', w:['public ხელით უნდა დაწერო.','internal default-ია თავად კლასისთვის, არა მისი წევრისთვის.','']},
+  {t:'oop', p:'რას ნიშნავს `sealed` კლასზე?', o:['ობიექტს ვერ შექმნი','მისგან მემკვიდრეობას ვერ მიიღებ'], c:1, x:'sealed კლასს ვერავინ გააგრძელებს, ობიექტის შექმნა კი შეიძლება.', w:['ობიექტს ვერ შექმნი abstract კლასისას.','']},
+  {t:'oop', p:'როგორ ახორციელებს კლასი ინტერფეისს?', o:['class Car implements IRun','class Car : IRun','class Car extends IRun'], c:1, x:'C#-ში მემკვიდრეობაც და ინტერფეისიც `:`-ით იწერება.', w:['implements Java-ს სინტაქსია.','','extends Java/TypeScript-ისაა.']},
+  {t:'oop', p:'`static` წევრი ვის ეკუთვნის?', o:['თითოეულ ობიექტს','თავად კლასს'], c:1, x:'static წევრი ერთია მთელი კლასისთვის: Math.Max, Console.WriteLine.', w:['ობიექტს ეკუთვნის ჩვეულებრივი (არა static) წევრი.','']},
+  {t:'oop', p:'`override` რომ იმუშაოს, საბაზო მეთოდი როგორი უნდა იყოს?', o:['private','virtual ან abstract','static'], c:1, x:'მხოლოდ virtual ან abstract მეთოდის გადაფარვაა შესაძლებელი.', w:['private მეთოდს მემკვიდრე ვერც კი ხედავს.','','static მეთოდი override-ით ვერ გადაიფარება.']},
+  {t:'oop', p:'`abstract` კლასზე რომელია სწორი?', o:['ობიექტს პირდაპირ ვერ შექმნი','მეთოდები არ აქვს','sealed-ია'], c:0, x:'abstract კლასი მხოლოდ საფუძველია მემკვიდრეებისთვის: new Shape() არ შეიძლება.', w:['','abstract კლასს ჩვეულებრივი მეთოდებიც შეიძლება ჰქონდეს.','პირიქით: abstract მემკვიდრეობისთვისაა, sealed კი მას კრძალავს.']},
+  {t:'oop', p:'რა სახელი აქვს კონსტრუქტორს?', o:['კლასის სახელი','Init','constructor'], c:0, x:'კონსტრუქტორს კლასის სახელი აქვს და დასაბრუნებელი ტიპი არ უწერია: public Book() {...}.', w:['','Init C#-ის კონსტრუქტორი არ არის.','constructor JavaScript-ის სიტყვაა.']},
+  {t:'oop', p:'`public int Age { get; private set; }` — ვის შეუძლია `Age`-ის შეცვლა?', o:['ყველას','მხოლოდ კლასის შიგნით','არავის'], c:1, x:'წაკითხვა ყველას შეუძლია, private set კი ცვლილებას მხოლოდ კლასის მეთოდებს აძლევს.', w:['ყველას რომ შეეცვალა, set უბრალოდ public იქნებოდა.','','კლასის შიგნით შეცვლა შეიძლება, მაგალითად მეთოდში.']},
+  {t:'col', p:'რომელი კოლექცია ინახავს key–value წყვილებს?', o:['List<T>','Queue<T>','Dictionary<TKey, TValue>'], c:2, x:'Dictionary თითოეულ გასაღებს თავის მნიშვნელობას უკავშირებს.', w:['List ელემენტებს რიგით ინახავს, გასაღებების გარეშე.','Queue რიგია: ვინც პირველი შევიდა, ის გამოდის.','']},
+  {t:'col', p:'`var a = new List<int> { 1, 2 }; var b = a; b.Add(3);` რას უდრის `a.Count`?', o:['2','3'], c:1, x:'List reference type-ია: a და b ერთსა და იმავე სიაზე მიუთითებს.', w:['2 დარჩებოდა, ასლი რომ შეგვექმნა: new List<int>(a).','']},
+  {t:'col', p:'`var l = new List<int> { 3, 1, 2 }; l.Sort();` რას უდრის `l[0]`?', o:['3','1','2'], c:1, x:'Sort ზრდადობით ალაგებს: 1, 2, 3.', w:['3 დასალაგებლად იყო პირველი, Sort-ის შემდეგ აღარ.','','2 შუაშია.']},
+  {t:'col', p:'რას აბრუნებს LINQ-ის `Where`?', o:['ერთ ელემენტს','გაფილტრულ მიმდევრობას','bool-ს'], c:1, x:'Where პირობას აკმაყოფილებელ ყველა ელემენტს აბრუნებს.', w:['ერთ ელემენტს First ან Single აბრუნებს.','','bool-ს Any ან All აბრუნებს.']},
+  {t:'col', p:'List-ში ელემენტების რაოდენობა რომელი property-ით იგება?', o:['Length','Count','Size'], c:1, x:'List-ს აქვს Count, მასივს — Length.', w:['Length მასივისა და string-ისაა.','','Size C#-ის კოლექციებს არ აქვს.']},
+  {t:'col', p:'`d["a"] = 1; d["a"] = 5;` — `d` არის Dictionary. რას უდრის `d["a"]`?', o:['1','5','შეცდომა'], c:1, x:'ინდექსატორი არსებულ გასაღებს უბრალოდ გადააწერს.', w:['პირველი მნიშვნელობა მეორემ ჩაანაცვლა.','','შეცდომას Add აგდებს, d["a"] = არა.']},
+];
+const H = [
+  {t:'base', p:'რას დაბეჭდავს?', code:'int a = 5;\nint b = a++ + ++a;\nConsole.WriteLine(b);', o:['11','12','10'], c:1, x:'a++ აბრუნებს 5-ს (a ხდება 6), ++a ჯერ ზრდის 7-მდე და აბრუნებს 7-ს. 5 + 7 = 12.', w:['11 იქნებოდა, თუ ++a-ც 6-ს დააბრუნებდა. ++a კი ჯერ ზრდის.','','10 იქნებოდა, თუ ორივე 5-ს დააბრუნებდა.']},
+  {t:'base', p:'რას დააბრუნებს `Avg(new[] { 1, 2 })`?', code:'double Avg(int[] x)\n{\n    int total = x.Sum();\n    return total / x.Length;\n}', o:['1.5','1','2'], c:1, x:'total და Length int-ია: 3 / 2 = 1, მერე ხდება 1.0.', w:['1.5-ისთვის საჭიროა (double)total / x.Length.','','2-მდე C# არ ამრგვალებს.']},
+  {t:'base', p:'რას დაბეჭდავს?', code:'string s = null;\nConsole.WriteLine(s?.Length ?? -1);', o:['0','-1','NullReferenceException'], c:1, x:'`?.` null-ზე null-ს აბრუნებს, `??` კი მაშინ -1-ს იღებს.', w:['ცარიელი string 0 იქნებოდა, აქ კი s null-ია.','','`?.` სწორედ ამ შეცდომას გვაცილებს.']},
+  {t:'base', p:'რას დაბეჭდავს?', code:'string a = "hello";\na.ToUpper();\nConsole.WriteLine(a);', o:['HELLO','hello'], c:1, x:'string immutable-ია: ToUpper ახალ string-ს აბრუნებს, a კი არ იცვლება.', w:['HELLO-სთვის საჭიროა a = a.ToUpper();','']},
+  {t:'base', p:'რას დაბეჭდავს?', code:'int a = 3, b = 4;\nConsole.WriteLine(a + b + "!" + a + b);', o:['7!7','7!34','34!34'], c:1, x:'მარცხნიდან მარჯვნივ: 3 + 4 = 7, მერე "7!" უკვე ტექსტია და a, b ემატება ტექსტად: "7!34".', w:['! -ის შემდეგ ყველაფერი ტექსტად ერთდება, არა რიცხვებად.','','დასაწყისში ორივე რიცხვია, ამიტომ ჯერ იკრიბება.']},
+  {t:'flow', p:'რა მოხდება?', code:'int[] nums = { 1, 2, 3 };\nfor (int i = 0; i <= nums.Length; i++)\n    Console.WriteLine(nums[i]);', o:['დაბეჭდავს 1 2 3','IndexOutOfRangeException','Compile error'], c:1, x:'ბოლო იტერაციაზე i = 3, nums[3] კი არ არსებობს. სწორია i < nums.Length.', w:['ჯერ 1 2 3 დაიბეჭდება, მერე კი შეცდომა მოხდება.','','კომპილატორი ამას ვერ ხედავს, შეცდომა გაშვებისას ხდება.']},
+  {t:'flow', p:'რას დაბეჭდავს?', code:'int day = 6;\nstring t = day switch\n{\n    6 or 7 => "weekend",\n    _ => "work"\n};\nConsole.WriteLine(t);', o:['work','weekend','6'], c:1, x:'6 ემთხვევა `6 or 7`-ს, ამიტომ "weekend".', w:['`_` მხოლოდ მაშინ სრულდება, როცა სხვა არაფერი დაემთხვა.','','switch აბრუნებს string-ს, არა day-ს.']},
+  {t:'flow', p:'რას დაბეჭდავს?', code:'int sum = 0;\nfor (int i = 1; i <= 4; i++)\n{\n    if (i == 3) continue;\n    sum += i;\n}\nConsole.WriteLine(sum);', o:['10','7','3'], c:1, x:'continue 3-ს გამოტოვებს: 1 + 2 + 4 = 7.', w:['10 იქნებოდა continue-ს გარეშე.','','3 იქნებოდა break-ით (1 + 2).']},
+  {t:'flow', p:'რა მოხდება?', code:'int i = 0;\nwhile (i < 3)\n{\n    Console.Write(i);\n}', o:['დაბეჭდავს 012','უსასრულოდ ბეჭდავს 0-ს','დაბეჭდავს 0'], c:1, x:'i არასდროს იზრდება, ამიტომ პირობა ყოველთვის true-ია. აკლია i++.', w:['012-ისთვის ციკლში i++ უნდა იყოს.','','ციკლი ჩერდება მხოლოდ მაშინ, როცა პირობა მცდარი ხდება.']},
+  {t:'flow', p:'რატომ არ კომპილირდება?', code:'int Sum(int a, int b)\n{\n    int r = a + b;\n}', o:['return აკლია','a + b არასწორია','int-ს ვერ დააბრუნებს'], c:0, x:'int მეთოდმა მნიშვნელობა უნდა დააბრუნოს: return r;', w:['','a + b სწორია.','int-ის დაბრუნება შეიძლება, უბრალოდ return არ წერია.']},
+  {t:'arr', p:'რას დაბეჭდავს?', code:'var text = "a,b,,c";\nConsole.WriteLine(text.Split(\',\').Length);', o:['3','4','5'], c:1, x:'ორ მძიმეს შორის ცარიელი ნაწილიც ითვლება: "a", "b", "", "c".', w:['3 იქნებოდა StringSplitOptions.RemoveEmptyEntries-ით.','','5 მძიმეების + 1 არ არის: მძიმე 3-ია.']},
+  {t:'arr', p:'რას დაბეჭდავს?', code:'int[] a = { 1, 2, 3 };\nint[] b = a;\nb[0] = 9;\nConsole.WriteLine(a[0]);', o:['1','9','0'], c:1, x:'მასივი reference type-ია: b და a ერთსა და იმავე მასივზე მიუთითებს.', w:['1 დარჩებოდა, ასლი რომ გაგვეკეთებინა: a.ToArray().','','0 არსად ჩაწერილა.']},
+  {t:'arr', p:'რას დაბეჭდავს?', code:'string s = "abc";\nstring r = "";\nforeach (char ch in s)\n    r = ch + r;\nConsole.WriteLine(r);', o:['abc','cba','bca'], c:1, x:'ყოველი ახალი სიმბოლო წინ ემატება: "a" → "ba" → "cba".', w:['abc იქნებოდა r = r + ch-ით.','','ყოველი სიმბოლო დასაწყისში ჯდება, ამიტომ სრულად შებრუნდება.']},
+  {t:'oop', p:'`new Person("Ana").Name` რას უდრის?', code:'class Person\n{\n    public string Name { get; set; }\n    public Person(string name)\n    {\n        name = name;\n    }\n}', o:['"Ana"','null'], c:1, x:'`name = name` პარამეტრს თავისსავე მნიშვნელობას ანიჭებს. უნდა იყოს Name = name.', w:['"Ana" რომ ყოფილიყო, Name-ს დიდი ასოთი უნდა მივანიჭოთ.','']},
+  {t:'oop', p:'რას დაბეჭდავს?', code:'var a = new P { X = 1 };\nvar b = a;\nb.X = 5;\nConsole.WriteLine(a.X);\n\nstruct P { public int X; }', o:['5','1','0'], c:1, x:'struct value type-ია: b = a ასლს ქმნის, ამიტომ a უცვლელია.', w:['5 იქნებოდა, P რომ class ყოფილიყო.','','a.X თავიდან 1-ია.']},
+  {t:'oop', p:'რას დაბეჭდავს?', code:'int x = 10;\nChange(x);\nConsole.WriteLine(x);\n\nvoid Change(int v) { v = 99; }', o:['99','10'], c:1, x:'int მეთოდში ასლად გადადის: v იცვლება, x კი არა.', w:['99-ისთვის საჭიროა ref: Change(ref x).','']},
+  {t:'oop', p:'რას დაბეჭდავს?', code:'int x = 10;\nChange(ref x);\nConsole.WriteLine(x);\n\nvoid Change(ref int v) { v = 99; }', o:['10','99'], c:1, x:'ref ცვლადს თავად გადასცემს, ასლს არა: v-ს ცვლილება x-ს ცვლის.', w:['10 იქნებოდა ref-ის გარეშე.','']},
+  {t:'oop', p:'რას დაბეჭდავს?', code:'A x = new B();\nConsole.WriteLine(x.Hi());\n\nclass A { public virtual string Hi() => "A"; }\nclass B : A { public override string Hi() => "B"; }', o:['A','B','შეცდომა'], c:1, x:'virtual/override-ის დროს გამოიძახება რეალური ობიექტის (B) მეთოდი, ცვლადის ტიპის მიუხედავად.', w:['A დაიბეჭდებოდა, თუ B-ში `new` იქნებოდა override-ის ნაცვლად.','','B არის A, ამიტომ A ცვლადში ჩაწერა დაშვებულია.']},
+  {t:'col', p:'რა მოხდება?', code:'var list = new List<int> { 1, 2, 3, 4 };\nforeach (var n in list)\n    if (n % 2 == 0) list.Remove(n);', o:['ლუწები წაიშლება','InvalidOperationException'], c:1, x:'foreach-ის დროს სიის შეცვლა აკრძალულია. გამოიყენე list.RemoveAll(n => n % 2 == 0).', w:['ლუწების წასაშლელად RemoveAll ან უკუღმა for ციკლია საჭირო.','']},
+  {t:'col', p:'რას დაბეჭდავს?', code:'var nums = new List<int> { 1, 2, 3, 4, 5 };\nvar r = nums.Where(n => n % 2 == 1)\n            .Select(n => n * 10)\n            .Sum();\nConsole.WriteLine(r);', o:['150','90','60'], c:1, x:'კენტები 1, 3, 5 → 10, 30, 50 → ჯამი 90.', w:['150 ყველა რიცხვის ჯამია × 10: Where-ის გარეშე.','','60 ლუწების ჯამი იქნებოდა × 10.']},
+  {t:'col', p:'რას დაბეჭდავს?', code:'var list = new List<int> { 5, 3, 8 };\nvar first = list.OrderBy(n => n).First();\nConsole.WriteLine(first);', o:['5','3','8'], c:1, x:'OrderBy ზრდადობით ალაგებს (3, 5, 8), First კი პირველს იღებს.', w:['5 თავდაპირველი სიის პირველია, დალაგების შემდეგ კი არა.','','8 იქნებოდა OrderByDescending-ით.']},
+  {t:'col', p:'რა მოხდება?', code:'var d = new Dictionary<string, int>();\nd.Add("a", 1);\nd.Add("a", 2);', o:['d["a"] იქნება 2','ArgumentException','d["a"] იქნება 1'], c:1, x:'Add იმავე გასაღებს ორჯერ არ იღებს და შეცდომას აგდებს.', w:['გადაწერა d["a"] = 2-ით ხდება, არა Add-ით.','','მეორე Add შეცდომას აგდებს და კოდი აქ ჩერდება.']},
+];
+const BANK = {}, POOL = {e:E, m:M, h:H};
+for (const [t, arr] of Object.entries(POOL)) arr.forEach((q, i) => { q.id = t + i; BANK[q.id] = q; });
+
+/* =================== helpers =================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clean = s => String(s ?? '').replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/g, ' ').trim();
+const fmt = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+const rid = () => Math.random().toString(36).slice(2, 10);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch {} } };
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function genCode(){ const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 5; i++) s += A[Math.floor(Math.random() * A.length)]; return s; }
+const KW = 'bool|break|case|char|class|const|continue|double|else|false|for|foreach|get|if|in|int|new|null|or|override|public|ref|return|set|string|struct|switch|true|var|virtual|void|while';
+const TOK = new RegExp('(\\/\\/.*$)|("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)\')|(\\b(?:' + KW + ')\\b)|(\\b\\d+(?:\\.\\d+)?\\b)|(\\b[A-Z][A-Za-z0-9_]*\\b)', 'gm');
+function hl(src){
+  return src.split('\n').map(line => {
+    let out = '', last = 0, m; TOK.lastIndex = 0;
+    while ((m = TOK.exec(line))) {
+      out += esc(line.slice(last, m.index));
+      const c = m[1] ? 't-com' : m[2] ? 't-str' : m[3] ? 't-kw' : m[4] ? 't-num' : 't-type';
+      out += '<span class="' + c + '">' + esc(m[0]) + '</span>'; last = m.index + m[0].length;
+    }
+    return out + esc(line.slice(last));
+  }).join('\n');
+}
+function slotVal(sl, hero){
+  const k = SLOT[sl].k;
+  if (k === 'atk') return '−' + (ATK + (hero === 'knight' ? 3 : 0));
+  if (k === 'heal') return '+' + (HEAL + (hero === 'healer' ? 5 : 0));
+  if (k === 'crit') return '−' + (CRIT + (hero === 'mage' ? 6 : 0));
+  return 'ბლოკი';
+}
+
+/* =================== sound =================== */
+const Snd = { ac:null, out:null, mg:null, on: store.get('bfa-sfx') !== '0', music: store.get('bfa-music') === '1', next:0, step:0 };
+function audio(){
+  try {
+    if (!Snd.ac) {
+      const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
+      Snd.ac = new C(); Snd.out = Snd.ac.createGain(); Snd.out.gain.value = .5; Snd.out.connect(Snd.ac.destination);
+      Snd.mg = Snd.ac.createGain(); Snd.mg.gain.value = 0; Snd.mg.connect(Snd.out);
+    }
+    if (Snd.ac.state === 'suspended') Snd.ac.resume().catch(() => {});
+    return Snd.ac;
+  } catch { return null; }
+}
+const live = () => Snd.ac && Snd.ac.state === 'running';
+const fxOk = () => Snd.on && live();
+function tone(f, d, o = {}){
+  const a = Snd.ac; if (!a) return;
+  const t = a.currentTime + (o.at || 0), osc = a.createOscillator(), g = a.createGain();
+  osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(f, t);
+  if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + d);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(o.v || .1, t + (o.att || .006)); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  osc.connect(g); g.connect(o.dest || Snd.out); osc.start(t); osc.stop(t + d + .05);
+}
+function noise(d, o = {}){
+  const a = Snd.ac; if (!a) return;
+  const t = a.currentTime + (o.at || 0), n = Math.max(1, Math.floor(a.sampleRate * d)), buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const s = a.createBufferSource(), fl = a.createBiquadFilter(), g = a.createGain();
+  s.buffer = buf; fl.type = o.type || 'bandpass'; fl.frequency.value = o.freq || 1200; fl.Q.value = o.q || .8; g.gain.value = o.v || .2;
+  s.connect(fl); fl.connect(g); g.connect(Snd.out); s.start(t);
+}
+const sfx = {
+  click(){ if (fxOk()) tone(1150, .045, {v:.05, type:'triangle'}); },
+  swish(){ if (fxOk()) noise(.16, {v:.22, freq:2600, q:.5, type:'highpass'}); },
+  hit(){ if (fxOk()) { tone(170, .2, {v:.28, to:70}); noise(.1, {v:.2, freq:900}); } },
+  zap(){ if (fxOk()) tone(620, .32, {v:.07, to:1240, type:'triangle'}); },
+  goo(){ if (fxOk()) { tone(300, .25, {v:.1, to:120, type:'triangle'}); noise(.18, {v:.12, freq:500}); } },
+  charge(){ if (fxOk()) tone(220, .7, {v:.07, to:880, type:'triangle'}); },
+  boom(){ if (fxOk()) { tone(120, .55, {v:.38, to:40}); noise(.5, {v:.3, freq:500, q:.5, type:'lowpass'}); tone(990, .3, {v:.05, to:240, type:'square'}); } },
+  heal(){ if (fxOk()) [523, 659, 784, 1047].forEach((f, i) => tone(f, .26, {v:.07, at:i * .07})); },
+  shield(){ if (fxOk()) { tone(440, .4, {v:.07, to:660, type:'sine'}); tone(880, .35, {v:.04, at:.08}); } },
+  block(){ if (fxOk()) { tone(1320, .18, {v:.08, type:'triangle', to:990}); noise(.12, {v:.12, freq:3000, type:'highpass'}); } },
+  dodge(){ if (fxOk()) noise(.2, {v:.16, freq:1800, q:.4, type:'highpass'}); },
+  wrong(){ if (fxOk()) tone(200, .24, {v:.08, type:'triangle', to:160}); },
+  tick(){ if (fxOk()) tone(880, .06, {v:.05}); },
+  go(){ if (fxOk()) { tone(523, .14, {v:.09, type:'triangle'}); tone(784, .3, {v:.09, type:'triangle', at:.12}); } },
+  fire(){ if (fxOk()) { tone(147, .9, {v:.1, type:'sawtooth', to:110}); tone(220, .9, {v:.05, type:'triangle', at:.1}); } },
+  ko(){ if (fxOk()) [392, 330, 262, 196].forEach((f, i) => tone(f, .32, {v:.09, at:i * .13, type:'triangle'})); },
+  win(){ if (fxOk()) [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .38, {v:.08, at:i * .1, type:'triangle'})); },
+  card(){ if (fxOk()) tone(740, .08, {v:.04}); },
+  pop(){ if (fxOk()) tone(990, .09, {v:.05, to:1480}); },
+  roar(){ if (fxOk()) { tone(90, .6, {v:.2, to:60, type:'sawtooth'}); noise(.5, {v:.12, freq:300, type:'lowpass'}); } },
+};
+const ARP = [0, 2, 4, 2, 1, 3, 5, 3, 0, 2, 4, 6, 4, 2, 1, 2];
+const SCALE = [220, 261.63, 293.66, 329.63, 392, 440, 523.25];
+const BASS = [110, 87.31, 98, 82.41];
+function musicTick(){
+  const a = Snd.ac; if (!a || !live()) return;
+  Snd.mg.gain.setTargetAtTime(Snd.music ? .55 : 0, a.currentTime, .3);
+  if (!Snd.music) { Snd.next = a.currentTime + .1; return; }
+  const stepLen = fireT > .5 ? .2 : .25;
+  if (Snd.next < a.currentTime) Snd.next = a.currentTime + .05;
+  while (Snd.next < a.currentTime + .35) {
+    const at = Snd.next - a.currentTime, i = Snd.step % 16;
+    tone(SCALE[ARP[i]] * (Snd.step % 32 >= 16 ? 1.122 : 1), .3, {v:.035, type:'triangle', at, dest:Snd.mg});
+    if (i % 8 === 0) tone(BASS[(Snd.step >> 3) % 4], stepLen * 7, {v:.06, at, dest:Snd.mg, att:.05});
+    Snd.next += stepLen; Snd.step++;
+  }
+}
+setInterval(musicTick, 120);
+function syncSndButtons(){ $('#btn-sfx').setAttribute('aria-pressed', String(Snd.on)); $('#btn-music').setAttribute('aria-pressed', String(Snd.music)); }
+$('#btn-sfx').addEventListener('click', () => { audio(); Snd.on = !Snd.on; store.set('bfa-sfx', Snd.on ? '1' : '0'); syncSndButtons(); sfx.click(); });
+$('#btn-music').addEventListener('click', () => { audio(); Snd.music = !Snd.music; store.set('bfa-music', Snd.music ? '1' : '0'); syncSndButtons(); });
+addEventListener('pointerdown', audio, {passive:true});
+addEventListener('keydown', audio);
+syncSndButtons();
+
+/* =================== capabilities =================== */
+const useCap = n => (window.claude && typeof window.claude.use === 'function') ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
+const roomP = useCap('room');
+
+/* =================== session state =================== */
+let room = null, gr = null, role = null, screen = 'home', homeErr = '';
+let myName = store.get('bfa-name') || '';
+let myHero = HEROES[store.get('bfa-hero')] ? store.get('bfa-hero') : 'knight';
+let myTopic = TOPICS.some(t => t.id === store.get('bfa-topic')) ? store.get('bfa-topic') : 'all';
+let myMedals = (() => { try { return JSON.parse(store.get('bfa-medals') || '[]'); } catch { return []; } })();
+let newMedals = [];
+let S = null, offset = 0, lastSig = '', joinCode = '', joinTimer = null, hostMissingSince = 0, guestPeer = null;
+let seenN = new Set(), myAns = [];
+let botNext = [0, 0, 0, 0], botCool = 0, recent = {e:[], m:[], h:[]}, revenge = [];
+const pend = [null, null, null, null], pendAt = [0, 0, 0, 0], lastPick = [null, null, null, null];
+let cardKey = [null, null, null, null], lockSeen = new Set(), tab = 0, mistakes = [];
+let seenEv = 0, lastGid = '', endShown = '', builtKey = '', hudKey = '', medalsFor = '';
+let emoteSentAt = 0, lastEmN = '';
+const disp = {h:HPMAX, g:HPMAX, b:0};
+const op = p => p === 'h' ? 'g' : 'h';
+const hostNow = () => role === 'h' ? Date.now() : Date.now() + offset;
+const isBoss = () => !!S && S.mode === 'boss';
+const coop = () => isBoss() && S.net;
+function players(){ if (!S) return ['h', 'g']; if (S.mode === 'boss') return S.net ? ['h', 'g'] : ['h']; return ['h', 'g']; }
+function nm(p){
+  if (p === 'b') return 'ბაგი';
+  if (S && S.names && S.names[p]) return S.names[p];
+  if (screen === 'home') return HEROES[F[p].hero].n;
+  return p === 'h' ? 'მოთამაშე' : 'სტუმარი';
+}
+const hpMax = id => id === 'b' ? (S && S.bmax || BOSS_HP_SOLO) : HPMAX;
+
+function blankScore(){ return {ok:0, bad:0, dmg:0, heal:0, crit:0, blk:0, rv:0, fast:0, minHp:HPMAX}; }
+function newState(code, mode, net, bot){
+  const botHero = pick(HERO_KEYS);
+  return {v:0, hn:Date.now(), gid:rid(), code, mode, net, bot, topic:myTopic, ph:'lobby',
+    names:{h:myName || 'მოთამაშე', g: bot ? HEROES[botHero].n + ' (ბოტი)' : ''},
+    hero:{h:myHero, g: bot ? botHero : 'mage'},
+    hp:{h:HPMAX, g:HPMAX, b:0}, bmax:0, sh:{h:0, g:0}, st:{h:0, g:0}, sc:{h:blankScore(), g:blankScore()},
+    cards:[], ev:[], ei:0, t0:0, dur: mode === 'boss' ? DUR_BOSS : DUR_DUEL, cd:0, fire:0, bn:0, end:null};
+}
+
+/* =================== host engine =================== */
+function pushHost(){
+  if (role !== 'h' || !S) return;
+  const {v, hn, ...rest} = S, sig = JSON.stringify(rest);
+  if (sig !== lastSig) { lastSig = sig; S.v++; S.hn = Date.now(); if (gr) gr.presence({r:'h', s:S}).catch(() => {}); }
+  ingest(); render();
+}
+function pushEv(e){ e.i = ++S.ei; e.hp = [S.hp.h, S.hp.g, S.hp.b]; S.ev.push(e); if (S.ev.length > 8) S.ev.shift(); }
+function pickQ(tier){
+  const shown = new Set(S.cards.map(c => c && c.q)), r = recent[tier];
+  let pool = POOL[tier].filter(q => S.topic === 'all' || q.t === S.topic);
+  if (pool.length < 5) pool = pool.concat(POOL[tier].filter(q => !pool.includes(q)).slice(0, 8)); // thin topic: borrow a few
+  let cand = pool.filter(q => !shown.has(q.id) && !r.includes(q.id));
+  if (!cand.length) cand = pool.filter(q => !shown.has(q.id));
+  if (!cand.length) cand = POOL[tier].filter(q => !shown.has(q.id));
+  const q = pick(cand);
+  r.push(q.id); while (r.length > Math.max(2, Math.floor(pool.length * .6))) r.shift();
+  return q;
+}
+const BOT_DELAY = [[6000, 11000], [8000, 13500], [8000, 13500], [10000, 17000]];
+const BOT_ACC = [.82, .72, .72, .55];
+function botDelay(sl){
+  const [a, b] = BOT_DELAY[sl], lead = S.hp.g - S.hp.h;
+  return rnd(a, b) * (lead > 25 ? 1.5 : lead < -25 ? .85 : 1);   // the bot eases off when far ahead
+}
+function newCard(sl){
+  const tier = SLOT[sl].tier, now = Date.now(), shown = new Set(S.cards.map(c => c && c.q));
+  let q = null, r = 0;
+  const ri = revenge.findIndex(x => x.tier === tier && now - x.at >= REVENGE_AFTER && !shown.has(x.q));
+  if (ri >= 0) { q = BANK[revenge[ri].q]; revenge.splice(ri, 1); r = 1; }
+  if (!q) q = pickQ(tier);
+  if (S.bot) botNext[sl] = now + botDelay(sl);
+  return {q:q.id, o:shuffle([...q.o.keys()]).join(''), lk:'', r, b:now};
+}
+function startCountdown(){
+  S.gid = rid(); S.ph = 'count'; S.cd = Date.now() + 3300;
+  S.hp = {h:HPMAX, g:HPMAX, b:0}; S.sh = {h:0, g:0}; S.st = {h:0, g:0};
+  if (S.mode === 'boss') { S.bmax = S.net ? BOSS_HP_COOP : BOSS_HP_SOLO; S.hp.b = S.bmax; if (!S.net) S.hp.g = 0; }
+  S.sc = {h:blankScore(), g:blankScore()}; S.ev = []; S.ei = 0; S.cards = []; S.fire = 0; S.end = null;
+  seenN = new Set(); recent = {e:[], m:[], h:[]}; revenge = [];
+  pushHost();
+}
+function beginFight(){
+  S.ph = 'fight'; S.t0 = Date.now(); S.cards = [];
+  for (let sl = 0; sl < 4; sl++) S.cards[sl] = newCard(sl);
+  botCool = Date.now() + 3000;
+  if (S.mode === 'boss') S.bn = Date.now() + 7000;
+  pushEv({k:'go'});
+}
+function heroOf(p){ return S.hero[p]; }
+function applyHit(tg, d, sc){
+  // returns {d, b, dg}: blocked by shield / dodged by ninja / damage dealt
+  if (tg !== 'b' && S.sh[tg]) { S.sh[tg] = 0; S.sc[tg].blk++; return {d:0, b:1, dg:0}; }
+  if (tg !== 'b' && heroOf(tg) === 'ninja' && Math.random() < .25) return {d:0, b:0, dg:1};
+  S.hp[tg] = Math.max(0, S.hp[tg] - d);
+  if (tg !== 'b') S.sc[tg].minHp = Math.min(S.sc[tg].minHp, S.hp[tg]);
+  if (sc) sc.dmg += d;
+  return {d, b:0, dg:0};
+}
+function alive(p){ return S.hp[p] > 0; }
+function hostAnswer(p, sl, qid, choice){
+  if (!S || S.ph !== 'fight' || !players().includes(p) || !alive(p)) return;
+  const card = S.cards[sl]; if (!card || card.q !== qid || card.lk.includes(p)) return;
+  const q = BANK[qid], k = SLOT[sl].k, hero = heroOf(p), now = Date.now();
+  if (choice === q.c) {
+    const sc = S.sc[p]; S.st[p]++; sc.ok++;
+    if (card.r) sc.rv++;
+    if (now - card.b <= FAST_MS) sc.fast++;
+    const x = now >= S.t0 + S.dur - FIRE_AT ? 1 : 0, rv = card.r ? 2 : 1;
+    const ev = {k, by:p, sl, q:qid, c:q.c, d:0, f:0, x, r:card.r};
+    if (k === 'heal') {
+      const amt = (HEAL + (hero === 'healer' ? 5 : 0)) * rv;
+      ev.d = Math.min(amt, HPMAX - S.hp[p]); S.hp[p] += ev.d; sc.heal += ev.d; ev.tg = p;
+    } else if (k === 'shield') {
+      ev.full = S.sh[p] ? 1 : 0; S.sh[p] = 1; ev.tg = p;
+    } else {
+      let m = rv; if (S.st[p] >= 3) { m *= 1.5; ev.f = 1; S.st[p] = 0; } if (x) m *= 1.5;
+      const base = k === 'crit' ? CRIT + (hero === 'mage' ? 6 : 0) : ATK + (hero === 'knight' ? 3 : 0);
+      ev.tg = S.mode === 'boss' ? 'b' : op(p);
+      const res = applyHit(ev.tg, Math.round(base * m), sc);
+      ev.d = res.d; ev.b = res.b; ev.dg = res.dg;
+      if (k === 'crit' && !res.b && !res.dg) sc.crit++;
+    }
+    pushEv(ev);
+    S.cards[sl] = newCard(sl);
+    checkEnd(p);
+  } else {
+    card.lk += p; S.st[p] = 0; S.sc[p].bad++;
+    revenge.push({q:qid, tier:SLOT[sl].tier, at:now});
+    pushEv({k:'miss', by:p, sl, q:qid});
+    const open = players().filter(x => alive(x) && !card.lk.includes(x));
+    if (!open.length) { pushEv({k:'skip', sl, q:qid, c:q.c}); S.cards[sl] = newCard(sl); }
+  }
+  pushHost();
+}
+function checkEnd(by){
+  if (S.ph !== 'fight') return;
+  if (S.mode === 'boss') {
+    if (S.hp.b <= 0) finish('team', 'boss');
+    else if (players().every(p => !alive(p))) finish('b', 'down');
+  } else {
+    if (S.hp.g <= 0) finish('h', 'ko'); else if (S.hp.h <= 0) finish('g', 'ko');
+  }
+}
+function finish(w, why){ S.ph = 'end'; S.end = {w, why}; }
+function bossTurn(now){
+  const targets = players().filter(alive); if (!targets.length) return;
+  const tg = pick(targets), x = now >= S.t0 + S.dur - FIRE_AT ? 1 : 0;
+  const res = applyHit(tg, Math.round(BOSS_DMG * (x ? 1.5 : 1)), null);
+  pushEv({k:'boss', by:'b', tg, d:res.d, b:res.b, dg:res.dg, x});
+  const fast = x ? .7 : 1, base = S.net ? [6000, 7500] : [7500, 9500];
+  S.bn = now + rnd(base[0], base[1]) * fast;
+  checkEnd('b');
+}
+function hostTick(){
+  if (role !== 'h' || !S) return;
+  const now = Date.now();
+  if (S.ph === 'count' && now >= S.cd) { beginFight(); pushHost(); return; }
+  if (S.ph !== 'fight') return;
+  if (!S.fire && now >= S.t0 + S.dur - FIRE_AT) { S.fire = 1; pushEv({k:'fire'}); pushHost(); }
+  if (now >= S.t0 + S.dur) {
+    if (S.mode === 'boss') finish('b', 'time');
+    else finish(S.hp.h > S.hp.g ? 'h' : S.hp.g > S.hp.h ? 'g' : 'd', 'time');
+    pushHost(); return;
+  }
+  if (S.mode === 'boss' && now >= S.bn) { bossTurn(now); pushHost(); return; }
+  if (S.bot && now >= botCool) {
+    for (const sl of shuffle([0, 1, 2, 3])) {
+      const c = S.cards[sl];
+      if (!c || c.lk.includes('g') || now < botNext[sl]) continue;
+      if (SLOT[sl].k === 'heal' && S.hp.g >= 92) continue;
+      if (SLOT[sl].k === 'shield' && S.sh.g) continue;
+      const q = BANK[c.q], right = Math.random() < BOT_ACC[sl];
+      let choice = q.c;
+      if (!right) choice = pick([...q.o.keys()].filter(i => i !== q.c));
+      botCool = now + rnd(1600, 2600);
+      hostAnswer('g', sl, c.q, choice);
+      if (right && SLOT[sl].k === 'crit' && Math.random() < .35) setTimeout(() => showEmote('g', pick(['😤', '🔥'])), 1300);
+      break;
+    }
+  }
+}
+setInterval(hostTick, 100);
+
+/* =================== room wiring =================== */
+function readEmote(pr, who){
+  const em = pr && pr.em;
+  if (em && em.n && em.n !== lastEmN && EMOTES.includes(em.e)) { lastEmN = em.n; showEmote(who, em.e); }
+}
+function onPeers(change){
+  const peers = change.peers || [];
+  if (role === 'h') {
+    if (!S || !S.net) return;
+    let g = guestPeer ? peers.find(p => p.peer === guestPeer) : null;
+    if (!g) { g = peers.find(p => !p.sameTab && p.presence && p.presence.r === 'g') || null; guestPeer = g ? g.peer : null; }
+    if (g) {
+      const pr = g.presence || {};
+      S.names.g = clean(pr.n).slice(0, 18) || 'სტუმარი';
+      if (HEROES[pr.hr] && S.ph === 'lobby') S.hero.g = pr.hr;
+      if (S.ph === 'lobby') startCountdown();
+      for (const a of Array.isArray(pr.a) ? pr.a : []) {
+        if (!a || a.g !== S.gid || !a.n || seenN.has(a.n)) continue;
+        seenN.add(a.n); hostAnswer('g', Number(a.sl), String(a.q), Number(a.c));
+      }
+      readEmote(pr, 'g');
+    } else if (S.ph === 'fight' || S.ph === 'count') { finish(S.mode === 'boss' ? 'b' : 'h', 'left'); }
+    else if (S.ph === 'lobby') S.names.g = '';
+    pushHost();
+  } else if (role === 'g') {
+    const h = peers.find(p => !p.sameTab && p.presence && p.presence.r === 'h' && p.presence.s);
+    if (h) {
+      hostMissingSince = 0;
+      const s = h.presence.s;
+      if (!S || s.v !== S.v) {
+        const first = !S;
+        S = s; offset = (s.hn || Date.now()) - Date.now();
+        if (joinTimer) { clearTimeout(joinTimer); joinTimer = null; }
+        if (first) { seenEv = S.ei; lastGid = S.gid; syncFromState(); }
+        ingest();
+      }
+      readEmote(h.presence, 'h');
+    } else if (S && !hostMissingSince) hostMissingSince = Date.now();
+    render();
+  }
+}
+function onRoomErr(e){ if (!e) return; homeErr = 'ოთახთან კავშირი გაწყდა (' + e.code + '). სცადე თავიდან.'; resetHome(); }
+async function connectRoom(btn){
+  const label = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'კავშირი…'; }
+  room = room || await roomP;
+  if (btn) { btn.disabled = false; btn.textContent = label; }
+  if (!room) { homeErr = 'ორმოთამაშიანი რეჟიმი აქ ვერ ჩაირთო. გახსენი გვერდი claude.ai-ზე შესული ანგარიშით. ბოტთან და ბოსთან მარტო ბრძოლა ამ დროსაც მუშაობს.'; render(); }
+  return room;
+}
+function needName(){
+  const inp = $('#in-name'); const n = clean(inp ? inp.value : myName).slice(0, 18);
+  if (!n) { homeErr = 'ჯერ სახელი ჩაწერე.'; render(); const i = $('#in-name'); if (i) i.focus(); return false; }
+  myName = n; store.set('bfa-name', n); return true;
+}
+async function createGame(mode){
+  homeErr = ''; if (!needName()) return;
+  if (!await connectRoom($(mode === 'boss' ? '#btn-boss-coop' : '#btn-create'))) return;
+  const code = genCode();
+  try { gr = await room.join('bfa-' + code.toLowerCase()); }
+  catch (e) { homeErr = 'ოთახი ვერ შეიქმნა (' + (e && e.code) + ').'; render(); return; }
+  role = 'h'; S = newState(code, mode, true, false); lastSig = ''; guestPeer = null; resetClient();
+  gr.onPeers(onPeers, onRoomErr);
+  screen = 'room'; pushHost();
+}
+async function joinGame(){
+  homeErr = ''; if (!needName()) return;
+  const code = ($('#in-code').value || '').trim().toUpperCase();
+  if (!/^[A-Z0-9]{5}$/.test(code)) { homeErr = 'კოდი 5 სიმბოლოა, მაგალითად K7QPM.'; render(); return; }
+  if (!await connectRoom($('#btn-join'))) return;
+  try { gr = await room.join('bfa-' + code.toLowerCase()); }
+  catch (e) { homeErr = 'ოთახში ვერ შევედით (' + (e && e.code) + ').'; render(); return; }
+  role = 'g'; S = null; joinCode = code; myAns = []; resetClient();
+  gr.onPeers(onPeers, onRoomErr);
+  gr.presence({r:'g', n:myName, hr:myHero, a:[]}).catch(() => {});
+  screen = 'room';
+  joinTimer = setTimeout(() => { if (!S && role === 'g') { homeErr = 'ამ კოდით ოთახი ვერ მოიძებნა.'; resetHome(); } }, 8000);
+  render();
+}
+function startLocal(mode){
+  homeErr = ''; if (!needName()) return;
+  role = 'h'; gr = null; S = newState('', mode, false, mode === 'duel'); lastSig = ''; resetClient();
+  screen = 'room'; startCountdown();
+}
+function resetClient(){
+  seenEv = 0; lastGid = ''; endShown = ''; medalsFor = ''; cardKey = [null, null, null, null]; lockSeen = new Set(); tab = 0; mistakes = [];
+  Q.length = 0; busyUntil = 0; fireTarget = 0; resetFighters(); hudKey = '';
+}
+function resetHome(){
+  if (gr) gr.leave().catch(() => {});
+  gr = null; role = null; S = null; screen = 'home'; guestPeer = null; hostMissingSince = 0;
+  if (joinTimer) { clearTimeout(joinTimer); joinTimer = null; }
+  resetClient(); setupHomeFighters(); render();
+}
+
+/* =================== player actions =================== */
+function answer(sl, qid, c){
+  if (!S || S.ph !== 'fight') return;
+  const card = S.cards[sl]; if (!card || card.q !== qid || card.lk.includes(role) || pend[sl] === qid || !alive(role)) return;
+  pend[sl] = qid; pendAt[sl] = Date.now(); lastPick[sl] = {q:qid, c}; sfx.click();
+  if (role === 'h') hostAnswer('h', sl, qid, c);
+  else {
+    myAns.push({g:S.gid, sl, q:qid, c, n:rid()}); if (myAns.length > 4) myAns.shift();
+    gr.presence({a:myAns}).catch(() => {});
+    updateCards();
+  }
+}
+function sendEmote(e){
+  if (!S || Date.now() - emoteSentAt < 1200) return;
+  emoteSentAt = Date.now();
+  showEmote(role, e);
+  if (gr) gr.presence({em:{e, n:rid()}}).catch(() => {});
+}
+
+/* =================== events → UI & animation =================== */
+function syncFromState(){
+  for (const id of ['h', 'g', 'b']) disp[id] = S.hp[id];
+  Q.length = 0; resetFighters(); applyHeroes();
+  F.h.shOn = S.sh.h ? 1 : 0; F.g.shOn = S.sh.g ? 1 : 0;
+  hudKey = '';
+}
+function ingest(){
+  if (!S) return;
+  if (S.gid !== lastGid) {
+    lastGid = S.gid; seenEv = 0; endShown = ''; medalsFor = ''; cardKey = [null, null, null, null]; lockSeen = new Set(); mistakes = []; fireTarget = 0;
+    syncFromState();
+  }
+  applyHeroes();
+  for (const e of S.ev || []) {
+    if (e.i <= seenEv) continue;
+    seenEv = e.i;
+    if (['skip', 'atk', 'heal', 'shield', 'crit'].includes(e.k)) showClaim(e);
+    if (e.k !== 'skip') Q.push(e);
+  }
+}
+function showClaim(e){
+  const q = BANK[e.q]; if (!q) return;
+  const el = $('#claim-' + e.sl);
+  if (el) {
+    const who = e.k === 'skip' ? 'ყველამ შეცდა' : (e.by === role ? 'შენ აიღე!' : nm(e.by) + '-მ აიღო');
+    el.className = 'claim show ' + (e.k === 'skip' ? '' : e.by === role ? 'me' : 'op');
+    el.innerHTML = '<b>' + esc(who) + '</b><span>ახალი კითხვა…</span>';
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 900);
+  }
+  const ln = $('#learn');
+  if (ln) {
+    ln.innerHTML = '<span class="li">' + ICON.bulb + '</span><span class="lt"><b>' + fmt(q.p.length > 90 ? q.p.slice(0, 88) + '…' : q.p) + ' → ' + fmt(q.o[e.c]) + '</b><span>' + fmt(q.x) + '</span></span>';
+    ln.classList.remove('pop'); void ln.offsetWidth; ln.classList.add('pop');
+  }
+}
+
+/* =================== canvas arena =================== */
+const cv = $('#cv'), ctx = cv.getContext('2d');
+let W = 0, Hh = 0, GY = 0, SC = 1;
+let stars = [], flies = [];
+function resize(){
+  const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+  W = r.width; Hh = r.height; cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  GY = Hh * .82; SC = Math.max(.6, Math.min(1.3, Math.min(Hh / 330, W / 520)));
+  stars = Array.from({length:46}, () => ({x:Math.random() * W, y:Math.random() * Hh * .5, r:rnd(.5, 1.6), p:rnd(0, 6)}));
+  if (!flies.length) flies = Array.from({length:14}, () => ({x:Math.random(), y:rnd(.35, .75), p:rnd(0, 6), s:rnd(.4, 1)}));
+}
+new ResizeObserver(resize).observe(cv);
+
+function hexRgb(h){ h = h.replace('#', ''); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+function mix(a, b, t){ const A = hexRgb(a), B = hexRgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * Math.max(0, Math.min(1, t))).toString(16).padStart(2, '0')).join(''); }
+function rr(x, y, w, h, r){ ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); ctx.fill(); }
+function circ(x, y, r){ ctx.beginPath(); ctx.arc(x, y, Math.max(0, r), 0, Math.PI * 2); ctx.fill(); }
+
+const F = {h:{id:'h', ph:0}, g:{id:'g', ph:1.7}, b:{id:'b', ph:.6, hero:'bug', kind:'bug', style:'spit', col:'#9BE07A', col2:'#3E2A5A', dir:-1}};
+function resetFighters(){ for (const f of Object.values(F)) Object.assign(f, {off:0, kb:0, wind:0, swing:0, cast:0, hurt:0, heal:0, charge:0, dizzy:0, ko:0, win:0, shOn:0, shv:0, dodge:0, emo:null, emoT:0}); }
+function setHero(f, key, alt){
+  const H = HEROES[key] || HEROES.knight;
+  f.hero = key; f.kind = key; f.style = H.style; f.orb = H.orb || '#BFD0FF';
+  f.col = alt ? H.alt[0] : H.col; f.col2 = alt ? H.alt[1] : H.col2;
+}
+function applyHeroes(){
+  if (!S) return;
+  setHero(F.h, S.hero.h, false);
+  setHero(F.g, S.hero.g, S.mode !== 'boss' && S.hero.g === S.hero.h);
+  F.h.dir = 1; F.g.dir = S.mode === 'boss' ? 1 : -1; F.b.dir = -1;
+}
+function setupHomeFighters(){
+  const other = HERO_KEYS.filter(k => k !== myHero);
+  setHero(F.h, myHero, false); setHero(F.g, homeRival && homeRival !== myHero ? homeRival : (homeRival = pick(other)), false);
+  F.h.dir = 1; F.g.dir = -1;
+}
+let homeRival = null;
+resetFighters(); setupHomeFighters();
+
+const inArena = id => {
+  if (screen === 'home' || !S) return id !== 'b';
+  if (S.mode === 'boss') return id === 'b' || id === 'h' || (id === 'g' && S.net);
+  return id !== 'b';
+};
+function baseX(f){
+  const boss = screen !== 'home' && isBoss();
+  if (!boss) return f.id === 'h' ? W * .27 : W * .73;
+  if (f.id === 'b') return W * .74;
+  if (!S.net) return W * .27;
+  return f.id === 'h' ? W * .15 : W * .33;
+}
+const fx = f => baseX(f) + f.dir * f.off - f.dir * f.kb - f.dir * f.dodge * 40 * SC;
+const fScale = f => f.id === 'b' ? SC * 1.05 : SC;
+const chest = f => ({x:fx(f), y:GY - (f.id === 'b' ? 66 : 52) * fScale(f)});
+const headY = f => GY - (f.id === 'b' ? 140 : 118) * fScale(f);
+function staffTip(f){ const a = -.12 - f.cast * .55; return {x:fx(f) + f.dir * SC * (22 + 64 * Math.sin(a)), y:GY + SC * (-40 - 64 * Math.cos(a))}; }
+function mouth(f){ return {x:fx(f) + f.dir * 92 * fScale(f), y:GY - 58 * fScale(f)}; }
+
+/* tweens + timers */
+const now = () => performance.now();
+const easeOut = p => 1 - Math.pow(1 - p, 3), easeIn = p => p * p, lin = p => p;
+const easeBack = p => { const c = 1.6; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+const tweens = [], timers = [];
+function tw(o, k, to, dur, ease = easeOut, delay = 0){ tweens.push({o, k, to, dur:Math.max(1, dur), ease, st:now() + delay, from:null}); }
+function at(ms, fn){ timers.push({t:now() + ms, fn}); }
+function stepTweens(n){
+  for (let i = 0; i < tweens.length; i++) {
+    const w = tweens[i]; if (n < w.st || w.from !== null) continue;
+    w.from = w.o[w.k];
+    for (let j = 0; j < tweens.length; j++) if (j !== i && tweens[j].o === w.o && tweens[j].k === w.k && tweens[j].from !== null) tweens[j].dead = true;
+  }
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const w = tweens[i]; if (w.dead) { tweens.splice(i, 1); continue; } if (w.from === null) continue;
+    const p = Math.min(1, (n - w.st) / w.dur); w.o[w.k] = w.from + (w.to - w.from) * w.ease(p); if (p >= 1) tweens.splice(i, 1);
+  }
+  for (let i = timers.length - 1; i >= 0; i--) if (n >= timers[i].t) { const t = timers.splice(i, 1)[0]; t.fn(); }
+}
+
+/* effects */
+const env = {shake:0, flash:0, dim:0};
+let fireT = 0, fireTarget = 0;
+const parts = [], texts = [], projs = [], bolts = [], slashes = [];
+function burst(x, y, col, n, spd, dirX = 0, grav = 300){
+  for (let i = 0; i < n; i++) {
+    const a = rnd(0, Math.PI * 2), v = rnd(.4, 1) * spd;
+    parts.push({x, y, vx:Math.cos(a) * v + dirX * spd * .6, vy:Math.sin(a) * v - spd * .3, life:rnd(.4, .8), max:.8, col, r:rnd(1.5, 3.5) * SC, g:grav});
+  }
+}
+function floatText(x, y, txt, col, size, ka){ texts.push({x, y, txt, col, size:size * SC, life:1.1, max:1.1, vy:70 * SC, ka}); }
+function showEmote(who, e){ const f = F[who]; if (!f || !inArena(who)) return; f.emo = e; f.emoT = 1.8; sfx.pop(); }
+
+const Q = []; let busyUntil = 0;
+function hudShake(p){ const el = $('#hud-' + p); if (!el) return; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+function setHp(e, id){ if (e.demo || !e.hp) return; disp[id] = e.hp[id === 'h' ? 0 : id === 'g' ? 1 : 2]; updateHud(); }
+function impact(T, A, e, crit){
+  const c = chest(T);
+  if (e.b) {
+    T.shOn = 0; floatText(c.x, c.y - 56 * SC, 'დაბლოკა!', '#BFE3FA', 22, true);
+    burst(c.x, c.y, '#BFE3FA', 22, 220, A ? A.dir : 0, 120); env.shake = 4;
+    if (!e.demo) sfx.block(); return;
+  }
+  if (e.dg) {
+    T.dodge = 1; tw(T, 'dodge', 0, 520, easeOut, 120);
+    floatText(c.x, c.y - 56 * SC, 'აიცილა!', '#E8ECF5', 22, true);
+    if (!e.demo) sfx.dodge(); return;
+  }
+  T.hurt = 1; tw(T, 'hurt', 0, 340, lin);
+  T.kb = (crit ? 36 : 18) * SC; tw(T, 'kb', 0, 520, easeOut, 80);
+  burst(c.x, c.y, crit ? '#FFD36A' : (A ? A.col : '#9BE07A'), crit ? 30 : 16, crit ? 260 : 170, A ? A.dir : 0);
+  burst(c.x, c.y, '#FFFFFF', crit ? 10 : 6, 140, A ? A.dir : 0);
+  slashes.push({x:c.x, y:c.y, dir:A ? A.dir : -T.dir, life:.28, max:.28, big:crit});
+  floatText(c.x, c.y - 50 * SC, '−' + e.d, crit ? '#FFD36A' : '#FF9A70', crit ? 42 : 30);
+  if (e.f || e.x || e.r) floatText(c.x - (A ? A.dir : 1) * 40 * SC, c.y - 86 * SC, e.r ? 'რევანში ×2' : '×1.5', e.r ? '#D6B8FF' : '#FF9A4C', 18, !!e.r);
+  env.shake = crit ? 14 : 6;
+  if (!e.demo) { hudShake(T.id); crit ? sfx.boom() : sfx.hit(); }
+}
+function checkKo(T, A, e){
+  if (e.demo || disp[T.id] > 0 || T.ko > 0) return;
+  tw(T, 'ko', 1, 750, easeBack, 200);
+  if (T.id === 'b') {
+    at(350, () => { banner('ბაგი დამარცხდა!', 'ka'); sfx.ko(); burst(chest(T).x, chest(T).y, '#B070D8', 50, 320); for (const p of players()) F[p].win = 1; at(900, () => sfx.win()); });
+  } else if (isBoss()) {
+    at(350, () => { floatText(fx(T), headY(T), 'დაეცა', '#F2C4BE', 20, true); sfx.ko(); });
+  } else {
+    at(450, () => { if (A) A.win = 1; banner('ნოკაუტი!', 'ka'); sfx.ko(); at(900, () => sfx.win()); });
+  }
+}
+function play(e){
+  const sc = Q.length > 1 ? .62 : 1, demo = !!e.demo;
+  const A = e.by ? F[e.by] : null, T = e.tg ? F[e.tg] : null;
+  switch (e.k) {
+    case 'go': banner(isBoss() ? 'ბაგი მოდის!' : 'ბრძოლა!', isBoss() ? 'ka' : ''); if (isBoss()) sfx.roar(); else sfx.go(); return 600;
+    case 'fire': fireTarget = 1; banner('ბოლო 30 წამი · ზიანი ×1.5', 'ka small'); sfx.fire(); return 900;
+    case 'miss':
+      A.dizzy = 1; tw(A, 'dizzy', 0, 1300, lin, 200);
+      floatText(fx(A), headY(A) - 8 * SC, '?', '#D8E2DE', 30);
+      if (!demo) sfx.wrong();
+      return 180;
+    case 'heal':
+      A.heal = 1; tw(A, 'heal', 0, 1000, lin);
+      at(180 * sc, () => {
+        setHp(e, A.id);
+        const c = chest(A);
+        for (let i = 0; i < 22; i++) parts.push({x:c.x + rnd(-30, 30) * SC, y:GY - rnd(0, 20) * SC, vx:rnd(-12, 12), vy:-rnd(50, 120) * SC, life:rnd(.6, 1.1), max:1.1, col:i % 3 ? '#7EE0A8' : '#E9FFF2', r:rnd(1.5, 3.2) * SC, g:-20});
+        floatText(c.x, c.y - 60 * SC, e.d > 0 ? '+' + e.d : 'სავსეა', '#8BEFB4', e.d > 0 ? 30 : 18, e.d <= 0);
+        if (e.r && e.d > 0) floatText(c.x, c.y - 92 * SC, 'რევანში ×2', '#D6B8FF', 16, true);
+        if (!demo) sfx.heal();
+      });
+      return 700 * sc;
+    case 'shield':
+      A.shOn = 1;
+      floatText(fx(A), headY(A), e.full ? 'ფარი უკვე გაქვს' : 'ფარი!', '#BFE3FA', e.full ? 16 : 24, true);
+      burst(chest(A).x, chest(A).y, '#BFE3FA', 14, 120, 0, 0);
+      if (!demo) sfx.shield();
+      return 520 * sc;
+    case 'boss': {
+      const Bf = F.b;
+      tw(Bf, 'off', 26 * SC, 220 * sc, easeOut); tw(Bf, 'cast', 1, 220 * sc);
+      if (!demo) sfx.roar();
+      at(260 * sc, () => {
+        const m = mouth(Bf), t = chest(T);
+        projs.push({x0:m.x, y0:m.y, x1:t.x, y1:t.y, st:now(), dur:360 * sc, col:'#9BE07A', glow:'#7FCF5A', r:9, x:m.x, y:m.y, cb:() => { setHp(e, T.id); impact(T, Bf, e, false); checkKo(T, Bf, e); }});
+        if (!demo) sfx.goo();
+      });
+      at(520 * sc, () => { tw(Bf, 'off', 0, 320); tw(Bf, 'cast', 0, 320); });
+      return 900 * sc;
+    }
+    case 'atk': case 'crit': {
+      const crit = e.k === 'crit';
+      const strike = () => { setHp(e, T.id); impact(T, A, e, crit); checkKo(T, A, e); };
+      if (crit) {
+        tw(env, 'dim', .55, 280);
+        tw(A, 'charge', 1, 620 * sc, easeIn);
+        if (A.style === 'melee') tw(A, 'wind', 1, 400 * sc); else tw(A, 'cast', 1, 400 * sc);
+        floatText(fx(A), headY(A) - 26 * SC, 'კრიტიკული!', '#FFD36A', 22, true);
+        if (!demo) sfx.charge();
+        at(680 * sc, () => { lightning(T); env.flash = .75; strike(); if (A.style === 'melee') { tw(A, 'wind', 0, 120); A.swing = 1; tw(A, 'swing', 0, 500, easeOut, 150); } });
+        at(980 * sc, () => { tw(A, 'charge', 0, 300); tw(A, 'cast', 0, 300); tw(env, 'dim', 0, 400); });
+        return 1350 * sc;
+      }
+      if (A.style === 'melee') {
+        const gap = (T.id === 'b' ? 150 : 92) * SC, dist = Math.max(0, Math.abs(baseX(T) - baseX(A)) - gap);
+        const quick = A.kind === 'ninja' ? .75 : 1;
+        tw(A, 'wind', 1, 170 * sc * quick); tw(A, 'off', dist, 230 * sc * quick, easeIn);
+        at(220 * sc * quick, () => { tw(A, 'wind', 0, 80); tw(A, 'swing', 1, 110); if (!demo) sfx.swish(); });
+        at(290 * sc * quick, strike);
+        at(420 * sc * quick, () => { tw(A, 'off', 0, 320 * sc); tw(A, 'swing', 0, 320 * sc); });
+        return 760 * sc;
+      }
+      tw(A, 'cast', 1, 190 * sc);
+      at(190 * sc, () => {
+        const s = staffTip(A), t = chest(T);
+        projs.push({x0:s.x, y0:s.y, x1:t.x, y1:t.y, st:now(), dur:300 * sc, col:'#F2F6FF', glow:A.orb, r:7, cb:strike, x:s.x, y:s.y});
+        if (!demo) sfx.zap();
+      });
+      at(560 * sc, () => tw(A, 'cast', 0, 260));
+      return 760 * sc;
+    }
+  }
+  return 0;
+}
+function lightning(T){
+  const t = chest(T), pts = [], x = t.x + rnd(-40, 40), n = 9;
+  for (let i = 0; i <= n; i++) { const p = i / n; pts.push({x:x + (t.x - x) * p + (i && i < n ? rnd(-22, 22) * SC : 0), y:-10 + (t.y + 10) * p}); }
+  bolts.push({pts, life:.38, max:.38});
+}
+let demoNext = now() + 1500;
+function pumpQueue(n){
+  if (n < busyUntil) return;
+  if (Q.length) { const e = Q.shift(); busyUntil = n + play(e); return; }
+  if (screen === 'home' && n > demoNext) {
+    const by = Math.random() < .5 ? 'h' : 'g', r = Math.random();
+    const k = r < .45 ? 'atk' : r < .65 ? 'crit' : r < .78 ? 'heal' : r < .9 ? 'shield' : 'miss';
+    const tg = k === 'heal' || k === 'shield' ? by : op(by);
+    const blocked = (k === 'atk' || k === 'crit') && F[tg].shOn ? 1 : 0;
+    busyUntil = n + play({k, by, tg, d:k === 'crit' ? CRIT : k === 'atk' ? ATK : HEAL, b:blocked, demo:true});
+    demoNext = n + rnd(2200, 3400);
+  }
+}
+
+/* drawing: scenery */
+function drawBg(t){
+  const sky = ctx.createLinearGradient(0, 0, 0, Hh);
+  sky.addColorStop(0, mix('#122330', '#2E1A1E', fireT)); sky.addColorStop(.7, mix('#2A4A52', '#5E3426', fireT)); sky.addColorStop(1, mix('#2A4A52', '#5E3426', fireT));
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, Hh);
+  const mx = W * .8, my = Hh * .2, mr = Math.max(14, Hh * .065);
+  const halo = ctx.createRadialGradient(mx, my, mr * .5, mx, my, mr * 3.2);
+  halo.addColorStop(0, 'rgba(245,232,200,.28)'); halo.addColorStop(1, 'rgba(245,232,200,0)');
+  ctx.fillStyle = halo; circ(mx, my, mr * 3.2);
+  ctx.fillStyle = mix('#F4EBD2', '#F6B98A', fireT); circ(mx, my, mr);
+  ctx.fillStyle = 'rgba(0,0,0,.06)'; circ(mx - mr * .3, my - mr * .2, mr * .25); circ(mx + mr * .35, my + mr * .3, mr * .18);
+  for (const s of stars) { ctx.globalAlpha = (.35 + .65 * (.5 + .5 * Math.sin(t * 1.6 + s.p))) * (1 - fireT * .6); ctx.fillStyle = '#EAF2EF'; circ(s.x, s.y, s.r); }
+  ctx.globalAlpha = 1;
+  const hill = (base, amp, freq, ph, col) => {
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, Hh);
+    for (let x = 0; x <= W + 10; x += 10) ctx.lineTo(x, base + Math.sin(x * freq + ph) * amp + Math.sin(x * freq * 2.3 + ph * 2) * amp * .4);
+    ctx.lineTo(W, Hh); ctx.closePath(); ctx.fill();
+  };
+  hill(Hh * .6, Hh * .05, .006, 1, mix('#1A3340', '#3B2224', fireT));
+  hill(Hh * .69, Hh * .035, .01, 3, mix('#20404A', '#4A2A24', fireT));
+  for (const tx of [W * .05, W * .95]) {
+    ctx.fillStyle = '#2B3B3F'; rr(tx - 3 * SC, GY - 78 * SC, 6 * SC, 78 * SC, 2);
+    const fl = 1 + Math.sin(t * 13 + tx) * .12 + Math.sin(t * 7.3) * .08;
+    const gl = ctx.createRadialGradient(tx, GY - 86 * SC, 2, tx, GY - 86 * SC, 60 * SC * fl);
+    gl.addColorStop(0, 'rgba(255,190,110,.45)'); gl.addColorStop(1, 'rgba(255,190,110,0)');
+    ctx.fillStyle = gl; circ(tx, GY - 86 * SC, 60 * SC * fl);
+    ctx.fillStyle = '#FFB45E'; ctx.beginPath(); ctx.ellipse(tx, GY - 88 * SC, 6 * SC, 11 * SC * fl, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#FFE6A8'; ctx.beginPath(); ctx.ellipse(tx, GY - 85 * SC, 3 * SC, 6 * SC * fl, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  const fg = ctx.createLinearGradient(0, GY - 10, 0, Hh);
+  fg.addColorStop(0, mix('#3D5F57', '#6A4434', fireT)); fg.addColorStop(1, mix('#22383A', '#3A2420', fireT));
+  ctx.fillStyle = fg; ctx.beginPath(); ctx.ellipse(W / 2, GY + Hh * .1, W * .52, Hh * .14, 0, Math.PI, 0); ctx.lineTo(W, Hh); ctx.lineTo(0, Hh); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 1;
+  for (let i = 1; i < 6; i++) { ctx.beginPath(); ctx.ellipse(W / 2, GY + Hh * .1, W * .52 * i / 6, Hh * .14 * i / 6, 0, Math.PI, 0); ctx.stroke(); }
+  for (const f of flies) {
+    const x = ((f.x * W + Math.sin(t * .4 * f.s + f.p) * 40) % W + W) % W, y = f.y * Hh + Math.sin(t * .9 * f.s + f.p * 2) * 16;
+    const a = .3 + .7 * (.5 + .5 * Math.sin(t * 2 * f.s + f.p));
+    ctx.fillStyle = fireT > .5 ? 'rgba(255,150,80,' + a + ')' : 'rgba(210,240,150,' + a * .8 + ')';
+    circ(x, y, 1.8 * SC);
+  }
+  if (fireT > .1 && Math.random() < .35 * fireT) parts.push({x:rnd(0, W), y:Hh + 4, vx:rnd(-10, 10), vy:-rnd(40, 90), life:rnd(1.2, 2.2), max:2.2, col:Math.random() < .5 ? '#FF9A4C' : '#FFD08A', r:rnd(1, 2.2), g:-6});
+  if (env.dim > 0) { ctx.fillStyle = 'rgba(4,8,12,' + env.dim + ')'; ctx.fillRect(0, 0, W, Hh); }
+}
+
+/* drawing: heroes (local frame faces +x, feet at 0,0) */
+function eyesSlit(f, t, b, x0, x1, y, col){
+  const blink = ((t + f.ph * 3) % 4) < .12 || f.ko > .5;
+  ctx.fillStyle = f.ko > .5 ? '#F07C5A' : col;
+  if (blink) { ctx.fillRect(x0, y + 2, 6, 2); ctx.fillRect(x1, y + 2, 6, 2); } else { rr(x0 + 1, y, 5, 6, 2); rr(x1 + 1, y, 5, 6, 2); }
+}
+function roundEyes(f, t, b, cx1, cx2, y){
+  const blink = ((t + f.ph * 3) % 3.6) < .12;
+  if (f.ko > .5) { ctx.strokeStyle = '#3B3B48'; ctx.lineWidth = 2; for (const ex of [cx1, cx2]) { ctx.beginPath(); ctx.moveTo(ex - 3, y - 3); ctx.lineTo(ex + 3, y + 3); ctx.moveTo(ex + 3, y - 3); ctx.lineTo(ex - 3, y + 3); ctx.stroke(); } }
+  else if (blink) { ctx.fillStyle = '#3B3B48'; ctx.fillRect(cx1 - 3.5, y, 7, 2); ctx.fillRect(cx2 - 3.5, y, 7, 2); }
+  else { ctx.fillStyle = '#FFFFFF'; circ(cx1, y, 5); circ(cx2, y, 5); ctx.fillStyle = '#2A2F45'; circ(cx1 + 1.5, y, 2.5); circ(cx2 + 1.5, y, 2.5); }
+}
+function blade(f, len, metal){
+  if (f.charge > 0) { ctx.shadowColor = '#FFD36A'; ctx.shadowBlur = 24 * f.charge; }
+  ctx.fillStyle = '#F2D27A'; rr(-10, -14, 20, 5, 2);
+  ctx.fillStyle = f.charge > 0 ? mix('#E9F1F0', '#FFE9A8', f.charge) : metal;
+  ctx.beginPath(); ctx.moveTo(-3.5, -13); ctx.lineTo(3.5, -13); ctx.lineTo(3.5, -len); ctx.lineTo(0, -len - 8); ctx.lineTo(-3.5, -len); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#8FA3A0'; ctx.fillRect(-.8, -len + 4, 1.6, len - 18);
+}
+function knight(f, t){
+  const h = f.hurt, b = f.ko ? 0 : Math.sin(t * 3 + f.ph) * 2;
+  const body = mix(f.col, '#FFFFFF', h * .85), dark = mix(f.col2, '#FFFFFF', h * .6), metal = mix('#D6E2DF', '#FFFFFF', h);
+  ctx.fillStyle = dark; rr(-17, -22, 13, 22, 5); rr(4, -22, 13, 22, 5);
+  ctx.fillStyle = metal; ctx.beginPath(); ctx.moveTo(-42, -62 + b); ctx.lineTo(-18, -62 + b); ctx.lineTo(-18, -38 + b); ctx.quadraticCurveTo(-30, -20 + b, -42, -38 + b); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = f.col2; circ(-30, -48 + b, 4.5);
+  ctx.fillStyle = body; rr(-24, -68 + b, 46, 50, 15);
+  ctx.fillStyle = dark; ctx.fillRect(-24, -36 + b, 46, 6);
+  ctx.fillStyle = '#F2D27A'; rr(-4, -37 + b, 8, 8, 2);
+  ctx.fillStyle = body; circ(1, -86 + b, 21);
+  ctx.fillStyle = '#F07C5A'; ctx.beginPath(); ctx.moveTo(-4, -104 + b); ctx.quadraticCurveTo(-26, -124 + b, -32, -98 + b); ctx.quadraticCurveTo(-18, -110 + b, -4, -100 + b); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#14232B'; rr(-3, -93 + b, 25, 12, 6);
+  eyesSlit(f, t, b, 3, 12, -90 + b, '#A8F5EA');
+  ctx.save(); ctx.translate(18, -48 + b);
+  ctx.rotate(.35 + f.swing * 1.9 - f.wind * 1.55 + Math.sin(t * 2 + f.ph) * .04);
+  blade(f, 64, metal);
+  ctx.fillStyle = dark; rr(-6, -8, 12, 12, 5);
+  ctx.restore();
+}
+function ninja(f, t){
+  const h = f.hurt, b = f.ko ? 0 : Math.sin(t * 3.4 + f.ph) * 1.8;
+  const body = mix(f.col, '#FFFFFF', h * .85), scarf = mix(f.col2, '#FFFFFF', h * .5), metal = mix('#D6E2DF', '#FFFFFF', h);
+  ctx.fillStyle = scarf; ctx.beginPath(); ctx.moveTo(-8, -76 + b);
+  const wv = Math.sin(t * 6 + f.ph) * 5;
+  ctx.quadraticCurveTo(-30, -78 + b + wv, -46, -70 + b - wv); ctx.lineTo(-44, -64 + b - wv); ctx.quadraticCurveTo(-28, -70 + b + wv, -8, -68 + b); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = mix('#262A3B', '#FFFFFF', h * .6); rr(-15, -22, 11, 22, 4); rr(4, -22, 11, 22, 4);
+  ctx.fillStyle = body; rr(-19, -64 + b, 38, 46, 13);
+  ctx.fillStyle = scarf; ctx.fillRect(-19, -38 + b, 38, 5);
+  ctx.fillStyle = body; circ(1, -82 + b, 19);
+  ctx.fillStyle = scarf; ctx.fillRect(-18, -94 + b, 38, 6);
+  ctx.fillStyle = mix('#F2E2D2', '#FFFFFF', h); rr(-2, -88 + b, 21, 10, 5);
+  eyesSlit(f, t, b, 3, 11, -86 + b, '#1E2433');
+  ctx.save(); ctx.translate(16, -46 + b);
+  ctx.rotate(.5 + f.swing * 1.9 - f.wind * 1.6 + Math.sin(t * 2.4 + f.ph) * .05);
+  blade(f, 38, metal);
+  ctx.fillStyle = mix('#262A3B', '#FFFFFF', h * .6); rr(-5.5, -7, 11, 11, 4);
+  ctx.restore();
+}
+function robeFigure(f, t, b, robe, dark){
+  ctx.fillStyle = robe; ctx.beginPath(); ctx.moveTo(-29, 0); ctx.lineTo(29, 0); ctx.lineTo(15, -64 + b); ctx.lineTo(-15, -64 + b); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = dark; ctx.beginPath(); ctx.moveTo(-29, 0); ctx.lineTo(29, 0); ctx.lineTo(27.5, -6); ctx.lineTo(-27.5, -6); ctx.closePath(); ctx.fill();
+}
+function staff(f, t, b, skin, orbCol, top){
+  ctx.save(); ctx.translate(22, -40 + b); ctx.rotate(-.12 - f.cast * .55);
+  ctx.strokeStyle = '#8A6A4A'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 36); ctx.lineTo(0, -56); ctx.stroke();
+  if (top === 'leaf') { ctx.fillStyle = '#5BBF86'; ctx.beginPath(); ctx.ellipse(-7, -58, 7, 3.5, -.6, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.ellipse(7, -58, 7, 3.5, .6, 0, Math.PI * 2); ctx.fill(); }
+  ctx.shadowColor = f.charge > 0 ? '#FFD36A' : orbCol; ctx.shadowBlur = 12 + f.charge * 26 + f.cast * 10;
+  ctx.fillStyle = f.charge > 0 ? mix('#E6F0FF', '#FFE9A8', f.charge) : mix(orbCol, '#FFFFFF', .5);
+  circ(0, -64, 7 + f.charge * 4 + f.cast * 2 + Math.sin(t * 5) * .6);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = skin; circ(0, 0, 6);
+  ctx.restore();
+}
+function mage(f, t){
+  const h = f.hurt, b = f.ko ? 0 : Math.sin(t * 2.6 + f.ph) * 2.4;
+  const robe = mix(f.col, '#FFFFFF', h * .85), dark = mix(f.col2, '#FFFFFF', h * .6), skin = mix('#F2E2D2', '#FFFFFF', h);
+  robeFigure(f, t, b, robe, dark);
+  ctx.fillStyle = '#F2D27A'; ctx.fillRect(-19, -36 + b, 38, 5);
+  ctx.fillStyle = skin; circ(0, -78 + b, 18);
+  roundEyes(f, t, b, 1.5, 11.5, -79 + b);
+  ctx.fillStyle = 'rgba(240,124,90,.35)'; circ(-6, -71 + b, 3.5);
+  ctx.fillStyle = dark; ctx.beginPath(); ctx.ellipse(0, -92 + b, 29, 6, 0, 0, Math.PI * 2); ctx.fill();
+  const sway = Math.sin(t * 1.7 + f.ph) * 3;
+  ctx.fillStyle = robe; ctx.beginPath(); ctx.moveTo(-20, -93 + b); ctx.lineTo(20, -93 + b); ctx.quadraticCurveTo(4, -116 + b, -16 + sway, -140 + b); ctx.quadraticCurveTo(-10, -114 + b, -20, -93 + b); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#F2D27A'; circ(-2, -108 + b, 3);
+  staff(f, t, b, skin, f.orb, 'orb');
+}
+function healer(f, t){
+  const h = f.hurt, b = f.ko ? 0 : Math.sin(t * 2.4 + f.ph) * 2.2;
+  const robe = mix(f.col, '#FFFFFF', h * .5), trim = mix(f.col2, '#FFFFFF', h * .6), skin = mix('#F5E1CC', '#FFFFFF', h);
+  robeFigure(f, t, b, robe, trim);
+  ctx.fillStyle = trim; ctx.fillRect(-3, -60 + b, 6, 54);
+  ctx.fillStyle = trim; ctx.beginPath(); ctx.arc(0, -80 + b, 24, Math.PI * 1.02, Math.PI * 1.98); ctx.lineTo(22, -68 + b); ctx.lineTo(-22, -68 + b); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = robe; ctx.beginPath(); ctx.arc(0, -80 + b, 21, Math.PI, 0); ctx.lineTo(19, -66 + b); ctx.lineTo(-19, -66 + b); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = skin; circ(3, -78 + b, 15);
+  roundEyes(f, t, b, 3, 12, -79 + b);
+  ctx.fillStyle = 'rgba(240,124,90,.35)'; circ(-3, -71 + b, 3);
+  ctx.fillStyle = trim; rr(-3, -101 + b, 6, 10, 2); rr(-6, -98 + b, 12, 4, 2);
+  staff(f, t, b, skin, f.orb, 'leaf');
+}
+function bug(f, t){
+  const h = f.hurt, b = f.ko ? 0 : Math.sin(t * 2 + f.ph) * 3, breath = 1 + Math.sin(t * 2 + f.ph) * .02;
+  const body = mix('#6B4C8C', '#FFFFFF', h * .8), dark = mix('#3E2A5A', '#FFFFFF', h * .6), belly = mix('#A585C2', '#FFFFFF', h * .8);
+  ctx.strokeStyle = dark; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++) {
+    const lx = -44 + i * 34, sw = Math.sin(t * 5 + i * 1.4) * 4;
+    ctx.beginPath(); ctx.moveTo(lx, -34 + b); ctx.quadraticCurveTo(lx - 16, -30, lx - 18 + sw, 0); ctx.stroke();
+  }
+  ctx.save(); ctx.translate(0, -66 + b); ctx.scale(breath, 1 / breath);
+  ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(-6, 0, 74, 54, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = belly; ctx.beginPath(); ctx.ellipse(6, 14, 50, 30, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(30,18,46,.35)'; ctx.lineWidth = 3;
+  for (const dx of [-40, -14, 12]) { ctx.beginPath(); ctx.ellipse(dx, -6, 16, 44, 0, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke(); }
+  ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.beginPath(); ctx.ellipse(-30, -26, 26, 10, -.4, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = body; circ(60, -62 + b, 32);
+  ctx.strokeStyle = dark; ctx.lineWidth = 4;
+  const aw = Math.sin(t * 3 + f.ph) * 6;
+  ctx.beginPath(); ctx.moveTo(58, -90 + b); ctx.quadraticCurveTo(64, -124 + b, 84 + aw, -132 + b); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(72, -86 + b); ctx.quadraticCurveTo(90, -112 + b, 110 - aw, -114 + b); ctx.stroke();
+  ctx.fillStyle = '#B8F07A'; circ(84 + aw, -132 + b, 5); circ(110 - aw, -114 + b, 5);
+  const glow = .6 + .4 * Math.sin(t * 4);
+  ctx.shadowColor = '#FFD36A'; ctx.shadowBlur = 10 * glow;
+  ctx.fillStyle = f.ko > .5 ? '#6E6A80' : '#FFD36A'; circ(64, -70 + b, 9); circ(82, -62 + b, 8);
+  ctx.shadowBlur = 0;
+  if (f.ko <= .5) { ctx.fillStyle = '#B23A3A'; circ(67, -70 + b, 4); circ(84.5, -62 + b, 3.6); }
+  ctx.strokeStyle = dark; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(54, -84 + b); ctx.lineTo(72, -78 + b); ctx.moveTo(76, -74 + b); ctx.lineTo(90, -70 + b); ctx.stroke();
+  const open = f.cast * 8;
+  ctx.fillStyle = '#F1EBDD';
+  ctx.beginPath(); ctx.moveTo(78, -46 + b); ctx.lineTo(94, -44 + b - open); ctx.lineTo(84, -38 + b); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(78, -40 + b); ctx.lineTo(94, -34 + b + open); ctx.lineTo(82, -32 + b); ctx.closePath(); ctx.fill();
+}
+const DRAW = {knight, mage, healer, ninja, bug};
+function drawFighter(f, t){
+  if (!inArena(f.id)) return;
+  const x = fx(f), s = fScale(f), lift = f.win ? Math.abs(Math.sin(t * 5.5 + f.ph)) * 14 * SC : 0;
+  ctx.fillStyle = 'rgba(4,10,14,.38)'; ctx.beginPath(); ctx.ellipse(x - f.dir * f.ko * 30 * s, GY + 2, ((f.id === 'b' ? 80 : 34) + f.ko * 26) * s * (1 - lift / 120), 7 * s, 0, 0, Math.PI * 2); ctx.fill();
+  if (f.heal > 0) { ctx.strokeStyle = 'rgba(126,224,168,' + f.heal + ')'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, GY, (36 + (1 - f.heal) * 34) * s, (8 + (1 - f.heal) * 7) * s, 0, 0, Math.PI * 2); ctx.stroke(); }
+  if (f.charge > 0) {
+    const r = (60 + 10 * Math.sin(t * 22)) * s * f.charge, cy = GY - 58 * s;
+    const g = ctx.createRadialGradient(x, cy, 4, x, cy, r); g.addColorStop(0, 'rgba(255,214,110,' + .55 * f.charge + ')'); g.addColorStop(1, 'rgba(255,214,110,0)');
+    ctx.fillStyle = g; circ(x, cy, r);
+    if (Math.random() < .5) parts.push({x:x + rnd(-40, 40) * s, y:GY - rnd(0, 20) * s, vx:0, vy:-rnd(60, 140) * s, life:.5, max:.5, col:'#FFD36A', r:2 * s, g:0});
+  }
+  ctx.save(); ctx.translate(x, GY - lift); ctx.scale(f.dir * s, s);
+  if (f.ko > 0) {
+    if (f.id === 'b') { ctx.globalAlpha = Math.max(0, 1 - f.ko * .85); ctx.translate(0, f.ko * 20); ctx.scale(1 + f.ko * .1, 1 - f.ko * .4); }
+    else { ctx.translate(-14 * f.ko, 0); ctx.rotate(-f.ko * 1.45); }
+  }
+  (DRAW[f.kind] || knight)(f, t);
+  ctx.restore(); ctx.globalAlpha = 1;
+  f.shv += ((f.shOn ? 1 : 0) - f.shv) * .15;
+  if (f.shv > .02 && f.id !== 'b') {
+    const cy = GY - 58 * s, r = 66 * s;
+    ctx.globalAlpha = f.shv;
+    const g = ctx.createRadialGradient(x, cy, r * .55, x, cy, r); g.addColorStop(0, 'rgba(150,205,245,0)'); g.addColorStop(1, 'rgba(150,205,245,.28)');
+    ctx.fillStyle = g; circ(x, cy, r);
+    ctx.strokeStyle = 'rgba(190,227,250,.75)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, cy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, cy, r - 4, t * 1.5, t * 1.5 + .7); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  if (f.dizzy > 0) {
+    ctx.globalAlpha = Math.min(1, f.dizzy * 2);
+    for (let i = 0; i < 3; i++) {
+      const a = t * 5 + i * 2.1, sx = x + Math.cos(a) * 20 * s, sy = headY(f) + 4 * s + Math.sin(a) * 5 * s;
+      ctx.fillStyle = '#FFE08A'; star(sx, sy, 5 * s);
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (f.emo && f.emoT > 0) {
+    const life = f.emoT, pop = life > 1.6 ? 1 - (life - 1.6) / .2 * .4 : 1, by = headY(f) - 30 * SC - (1.8 - life) * 8 * SC;
+    ctx.globalAlpha = Math.min(1, life / .3);
+    ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.ellipse(x, by, 24 * SC * pop, 20 * SC * pop, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x - 6 * SC, by + 16 * SC); ctx.lineTo(x, by + 26 * SC); ctx.lineTo(x + 6 * SC, by + 16 * SC); ctx.fill();
+    ctx.font = Math.round(24 * SC * pop) + 'px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(f.emo, x, by + 1);
+    ctx.globalAlpha = 1;
+  }
+}
+function star(x, y, r){ ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r2 = i % 2 ? r * .45 : r; ctx.lineTo(x + Math.cos(a) * r2, y + Math.sin(a) * r2); } ctx.closePath(); ctx.fill(); }
+function drawFx(dt, n){
+  for (let i = projs.length - 1; i >= 0; i--) {
+    const p = projs[i], k = Math.min(1, (n - p.st) / p.dur);
+    p.x = p.x0 + (p.x1 - p.x0) * k; p.y = p.y0 + (p.y1 - p.y0) * k - Math.sin(k * Math.PI) * 26 * SC;
+    parts.push({x:p.x, y:p.y, vx:rnd(-20, 20), vy:rnd(-20, 20), life:.3, max:.3, col:p.glow, r:2.6 * SC, g:0});
+    ctx.shadowColor = p.glow; ctx.shadowBlur = 18; ctx.fillStyle = p.col; circ(p.x, p.y, p.r * SC); ctx.shadowBlur = 0;
+    if (k >= 1) { projs.splice(i, 1); p.cb(); }
+  }
+  for (let i = slashes.length - 1; i >= 0; i--) {
+    const s = slashes[i]; s.life -= dt; if (s.life <= 0) { slashes.splice(i, 1); continue; }
+    const p = 1 - s.life / s.max, r = (s.big ? 54 : 38) * SC * (.7 + p * .5);
+    ctx.strokeStyle = 'rgba(255,255,255,' + (1 - p) + ')'; ctx.lineWidth = (s.big ? 7 : 5) * (1 - p) + 1; ctx.lineCap = 'round';
+    ctx.beginPath();
+    if (s.dir > 0) ctx.arc(s.x - 10 * SC, s.y, r, -2.1, .5); else ctx.arc(s.x + 10 * SC, s.y, r, Math.PI - .5, Math.PI + 2.1);
+    ctx.stroke();
+  }
+  for (let i = bolts.length - 1; i >= 0; i--) {
+    const b = bolts[i]; b.life -= dt; if (b.life <= 0) { bolts.splice(i, 1); continue; }
+    const a = b.life / b.max;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(255,214,110,' + a + ')'; ctx.lineWidth = 10 * SC * a; ctx.shadowColor = '#FFD36A'; ctx.shadowBlur = 30;
+    ctx.beginPath(); b.pts.forEach((p, j) => j ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,255,255,' + a + ')'; ctx.lineWidth = 3 * SC;
+    ctx.beginPath(); b.pts.forEach((p, j) => j ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke();
+  }
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i]; p.life -= dt; if (p.life <= 0) { parts.splice(i, 1); continue; }
+    p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.col; circ(p.x, p.y, p.r);
+  }
+  ctx.globalAlpha = 1;
+  for (let i = texts.length - 1; i >= 0; i--) {
+    const t = texts[i]; t.life -= dt; if (t.life <= 0) { texts.splice(i, 1); continue; }
+    t.y -= t.vy * dt; t.vy *= .94;
+    const p = 1 - t.life / t.max, sc = p < .15 ? .6 + p / .15 * .4 : 1;
+    ctx.globalAlpha = Math.min(1, t.life / .35);
+    ctx.font = (t.ka ? '800 ' : '') + Math.round(t.size * sc) + 'px ' + (t.ka ? '"Noto Sans Georgian", system-ui, sans-serif' : '"Russo One", system-ui, sans-serif');
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(10,18,22,.65)'; ctx.strokeText(t.txt, t.x, t.y);
+    ctx.fillStyle = t.col; ctx.fillText(t.txt, t.x, t.y);
+  }
+  ctx.globalAlpha = 1;
+}
+let lastT = now();
+function frame(){
+  const n = now(), dt = Math.min(.05, (n - lastT) / 1000); lastT = n;
+  const t = n / 1000;
+  stepTweens(n); pumpQueue(n);
+  fireT += (fireTarget - fireT) * Math.min(1, dt * 1.5);
+  for (const f of Object.values(F)) if (f.emoT > 0) f.emoT -= dt;
+  if (W > 0) {
+    ctx.save();
+    if (env.shake > .3) { ctx.translate(rnd(-1, 1) * env.shake, rnd(-1, 1) * env.shake * .6); env.shake *= Math.pow(.02, dt); } else env.shake = 0;
+    drawBg(t);
+    drawFighter(F.b, t); drawFighter(F.g, t); drawFighter(F.h, t);
+    drawFx(dt, n);
+    ctx.restore();
+    if (env.flash > .01) { ctx.fillStyle = 'rgba(255,248,225,' + env.flash + ')'; ctx.fillRect(0, 0, W, Hh); env.flash *= Math.pow(.004, dt); }
+  }
+  tickUi();
+  requestAnimationFrame(frame);
+}
+
+/* =================== HUD & banner =================== */
+let bannerT = 0;
+function banner(txt, cls){
+  const b = $('#banner'); b.textContent = txt; b.className = 'banner show ' + (cls || '');
+  clearTimeout(bannerT); bannerT = setTimeout(() => b.classList.remove('show'), 1150);
+}
+function hpBlock(id, cls){
+  return '<div class="hp ' + cls + '" id="hud-' + id + '"><div class="hp-top"><span class="nm" id="nm-' + id + '"></span><span class="hpn" id="hpn-' + id + '"></span></div>'
+    + '<div class="bar" id="bar-' + id + '"><i class="chip" id="chip-' + id + '"></i><i class="fill" id="fill-' + id + '"></i></div>'
+    + (id === 'b' ? '<div class="sub"><span>ბოსი</span></div>' : '<div class="sub"><span class="pips" id="pips-' + id + '"><b></b><b></b><b></b></span><span class="shd" id="shd-' + id + '">ფარი</span><span class="rl" id="sub-' + id + '"></span></div>')
+    + '</div>';
+}
+function buildHud(){
+  const mode = screen === 'home' || !S ? 'duel' : S.mode, co = mode === 'boss' && S && S.net;
+  const key = mode + (co ? 'c' : '');
+  if (key === hudKey) return; hudKey = key;
+  const left = hpBlock('h', '') + (co ? hpBlock('g', 'mini') : '');
+  const right = mode === 'boss' ? hpBlock('b', 'boss') : hpBlock('g', '');
+  $('#hud').innerHTML = '<div class="side l">' + left + '</div><div class="clock" id="clock"></div><div class="side r">' + right + '</div>';
+}
+function updateHud(){
+  buildHud();
+  const ids = screen === 'home' || !S ? ['h', 'g'] : isBoss() ? (S.net ? ['h', 'g', 'b'] : ['h', 'b']) : ['h', 'g'];
+  for (const id of ids) {
+    const fill = $('#fill-' + id); if (!fill) continue;
+    const max = hpMax(id), v = Math.max(0, Math.min(max, Math.round(disp[id] ?? max))), pct = (v / max * 100).toFixed(1) + '%';
+    fill.style.width = pct; $('#chip-' + id).style.width = pct;
+    $('#hpn-' + id).textContent = v; $('#bar-' + id).classList.toggle('low', id !== 'b' && v <= 30);
+    const you = role === id && screen !== 'home';
+    const html = esc(nm(id)) + (you ? '<span class="you">შენ</span>' : '');
+    const nmEl = $('#nm-' + id); if (nmEl.innerHTML !== html) nmEl.innerHTML = html;
+    if (id === 'b') continue;
+    const st = S && S.st && screen !== 'home' ? Math.min(3, S.st[id]) : 0, pips = $('#pips-' + id);
+    $$('b', pips).forEach((b, i) => b.classList.toggle('on', i < st));
+    pips.classList.toggle('full', st >= 3);
+    $('#shd-' + id).classList.toggle('on', !!F[id].shOn);
+    const H = HEROES[F[id].hero] || HEROES.knight;
+    const subTxt = st >= 3 ? 'ცეცხლოვანი დარტყმა მზადაა' : H.role + ' · ' + H.ab;
+    const sub = $('#sub-' + id); if (sub.textContent !== subTxt) sub.textContent = subTxt;
+  }
+}
+let lastCount = 0;
+function tickUi(){
+  const clock = $('#clock');
+  if (clock) {
+    if (S && (S.ph === 'fight' || (S.ph === 'end' && S.t0))) {
+      const rem = S.ph === 'end' ? 0 : Math.max(0, S.t0 + S.dur - hostNow());
+      const s = Math.ceil(rem / 1000), txt = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      if (clock.textContent !== txt) { clock.textContent = txt; if (S.ph === 'fight' && s <= 5 && s > 0) sfx.tick(); }
+      clock.classList.toggle('hot', rem <= FIRE_AT && S.ph === 'fight');
+    } else if (clock.textContent) clock.textContent = '';
+  }
+  if (S && S.ph === 'count') {
+    const c = Math.ceil((S.cd - hostNow()) / 1000);
+    if (c !== lastCount && c > 0 && c <= 3) { lastCount = c; banner(String(c), ''); sfx.tick(); }
+  } else lastCount = 0;
+  const idle = !Q.length && now() > busyUntil + 300;
+  if (S && idle && S.ph !== 'end' && S.hp) {
+    let ch = false;
+    for (const id of ['h', 'g', 'b']) if (disp[id] !== S.hp[id]) { disp[id] = S.hp[id]; ch = true; }
+    for (const id of ['h', 'g']) { const want = S.sh[id] ? 1 : 0; if (F[id].shOn !== want) { F[id].shOn = want; ch = true; } }
+    if (ch) updateHud();
+  }
+  for (let sl = 0; sl < 4; sl++) if (pend[sl] && Date.now() - pendAt[sl] > 2500) { pend[sl] = null; updateCards(); }
+  if (S && S.ph === 'end' && endShown !== S.gid && !Q.length && now() > busyUntil + 900) {
+    endShown = S.gid;
+    const e = S.end || {};
+    if (e.why === 'time' || e.why === 'left') {
+      if (S.mode !== 'boss' && e.w !== 'd' && F[e.w]) { F[e.w].win = 1; sfx.win(); }
+      if (S.mode === 'boss') F.b.win = 1;
+      banner(e.why === 'left' ? 'მოწინააღმდეგე გავიდა' : S.mode === 'boss' ? 'ბაგმა გაუძლო' : 'დრო ამოიწურა', 'ka small');
+    } else if (e.why === 'down') { F.b.win = 1; banner('ბაგმა გაიმარჯვა', 'ka small'); }
+    awardMedals();
+    render();
+  }
+  if (role === 'g' && hostMissingSince && Date.now() - hostMissingSince > 3500 && screen === 'room' && S && S.ph !== 'end') {
+    hostMissingSince = 0; homeErr = 'მასპინძელი გავიდა ოთახიდან.'; resetHome();
+  }
+}
+function wonBy(p){ if (!S || !S.end) return false; return S.mode === 'boss' ? S.end.w === 'team' : S.end.w === p; }
+function medalsOf(p){ if (!S || !S.sc || !S.sc[p]) return []; const won = wonBy(p), boss = S.mode === 'boss'; return MEDALS.filter(m => m.ok(S.sc[p], won, boss)).map(m => m.id); }
+function awardMedals(){
+  if (!S || medalsFor === S.gid || !players().includes(role)) return;
+  medalsFor = S.gid;
+  const got = medalsOf(role);
+  newMedals = got.filter(id => !myMedals.includes(id));
+  if (newMedals.length) { myMedals = myMedals.concat(newMedals); store.set('bfa-medals', JSON.stringify(myMedals)); }
+}
+
+/* =================== panel rendering =================== */
+function currentScreen(){
+  if (screen === 'home') return 'home';
+  if (!S) return 'wait';
+  if (S.ph === 'lobby') return 'lobby';
+  if (S.ph === 'end' && endShown === S.gid) return 'end';
+  return 'fight';
+}
+function render(){
+  const sc = currentScreen();
+  const key = sc + ':' + (S ? S.gid : '');
+  if (key !== builtKey) { builtKey = key; build(sc); }
+  update(sc); updateHud();
+  const em = $('#emotes');
+  const showEm = (sc === 'fight' || sc === 'end' || sc === 'lobby') && !!S && (S.net || S.bot);
+  em.hidden = !showEm;
+  if (showEm && !em.childElementCount) {
+    em.innerHTML = EMOTES.map(e => '<button data-e="' + e + '" aria-label="ემოცია ' + e + '">' + e + '</button>').join('');
+    $$('button', em).forEach(b => b.addEventListener('click', () => sendEmote(b.dataset.e)));
+  }
+}
+function build(sc){
+  const v = $('#view');
+  if (sc === 'home') v.innerHTML = homeHTML();
+  else if (sc === 'wait') v.innerHTML = '<section class="lobby"><p class="eyebrow">ოთახი ' + esc(joinCode) + '</p><h2>ვუკავშირდებით<span class="dots"></span></h2><button class="link" id="btn-cancel">გაუქმება</button></section>';
+  else if (sc === 'lobby') v.innerHTML = lobbyHTML();
+  else if (sc === 'fight') { v.innerHTML = fightHTML(); cardKey = [null, null, null, null]; }
+  else if (sc === 'end') v.innerHTML = endHTML();
+  bind(sc);
+}
+function homeHTML(){
+  const heroes = HERO_KEYS.map(k => { const H = HEROES[k]; return '<button class="hero" data-h="' + k + '" aria-pressed="' + (k === myHero) + '"><i style="background:' + H.col + ';outline:3px solid ' + H.col2 + ';outline-offset:-3px"></i><b>' + H.n + '</b><span>' + H.role + '</span><small>' + H.ab + '</small></button>'; }).join('');
+  const topics = TOPICS.map(t => '<button class="chipb" data-t="' + t.id + '" aria-pressed="' + (t.id === myTopic) + '">' + t.n + '</button>').join('');
+  const medals = MEDALS.map(m => '<div class="medal ' + (myMedals.includes(m.id) ? '' : 'off') + '" title="' + esc(m.d) + '"><span class="me">' + m.e + '</span><b>' + m.n + '</b><small>' + m.d + '</small></div>').join('');
+  return '<section class="home">'
+    + '<div class="intro"><h1>Bytefight არენა</h1><p>ორი მოთამაშე, ოთხი კითხვა ერთდროულად. ვინც პირველი უპასუხებს სწორად, მისი გმირი მოქმედებს. ყოველი პასუხის შემდეგ ხედავ, რატომ არის ის სწორი, ბოლოს კი შენს შეცდომებს ერთად გადახედავ.</p></div>'
+    + '<div class="setup">'
+    +   '<div class="field"><label class="lbl" for="in-name">შენი სახელი</label><input type="text" id="in-name" maxlength="18" autocomplete="nickname" placeholder="მაგ. ანა" value="' + esc(myName) + '">'
+    +   '<span class="lbl">თემა</span><div class="chips" id="topics">' + topics + '</div></div>'
+    +   '<div class="field"><span class="lbl">აირჩიე გმირი</span><div class="heroes" id="heroes">' + heroes + '</div></div>'
+    + '</div>'
+    + '<div class="actions">'
+    +   '<div class="act"><h2>დუელი მეგობართან</h2><p>შექმენი ოთახი და კოდი გაუგზავნე. ბრძოლა დაიწყება, როგორც კი შემოვა.</p><div class="row"><button class="btn primary" id="btn-create">ოთახის შექმნა</button></div></div>'
+    +   '<div class="act"><h2>შემოსვლა კოდით</h2><p>ჩაწერე კოდი მეგობრის ეკრანიდან.</p><div class="join-row"><input type="text" id="in-code" maxlength="5" placeholder="K7QPM" autocomplete="off" spellcheck="false" aria-label="ოთახის კოდი"><button class="btn" id="btn-join">შესვლა</button></div></div>'
+    +   '<div class="act"><h2>დუელი ბოტთან</h2><p>ვარჯიში შემთხვევით გმირთან. ბოტი თავის სიჩქარეს შენზე არგებს.</p><div class="row"><button class="btn" id="btn-bot">ბრძოლა</button></div></div>'
+    +   '<div class="act boss"><h2>ბოსი ბაგი</h2><p>დიდი ხოჭო ყოველ რამდენიმე წამში გიტევს. დაამარცხე მარტო ან მეგობართან ერთად.</p><div class="row"><button class="btn" id="btn-boss-solo">მარტო</button><button class="btn" id="btn-boss-coop">მეგობართან ერთად</button></div></div>'
+    + '</div>'
+    + '<p class="err" id="home-err"></p>'
+    + '<div class="rules">'
+    +   '<div class="rule atk"><span class="ri">' + ICON.atk + '</span><span><b>შეტევა · ' + ATK + ' ზიანი</b><small>მარტივი კითხვა</small></span></div>'
+    +   '<div class="rule heal"><span class="ri">' + ICON.heal + '</span><span><b>სიცოცხლე · +' + HEAL + '</b><small>საშუალო კითხვა</small></span></div>'
+    +   '<div class="rule shield"><span class="ri">' + ICON.shield + '</span><span><b>ფარი · ბლოკავს დარტყმას</b><small>საშუალო კითხვა</small></span></div>'
+    +   '<div class="rule crit"><span class="ri">' + ICON.crit + '</span><span><b>კრიტიკული · ' + CRIT + ' ზიანი</b><small>რთული კითხვა კოდით</small></span></div>'
+    + '</div>'
+    + '<div class="extra"><span><i></i>3 სწორი ზედიზედ: ×1.5</span><span><i></i>ბოლო 30 წამში ზიანი ×1.5</span><span><i style="background:var(--rv)"></i>შეცდომის კითხვა ბრუნდება „რევანშად" ×2</span><span><i></i>არასწორი პასუხი ამ ბარათს გიბლოკავს</span></div>'
+    + '<div class="field"><span class="lbl">შენი მედლები · ' + myMedals.length + ' / ' + MEDALS.length + '</span><div class="medals">' + medals + '</div></div>'
+    + '</section>';
+}
+function lobbyHTML(){
+  const boss = S.mode === 'boss';
+  return '<section class="lobby"><span class="eyebrow">' + (boss ? 'ბოსის ოთახი' : 'დუელის ოთახი') + ' · კოდი</span><span class="room-code" id="room-code">' + esc(S.code) + '</span>'
+    + '<button class="btn" id="btn-copy">კოდის კოპირება</button>'
+    + '<p class="note">მეგობარმა გახსნას ეს გვერდი თავისი claude.ai ანგარიშით, აირჩიოს გმირი და შეიყვანოს კოდი. ' + (boss ? 'ერთად დაუპირისპირდებით ბაგს.' : 'ბრძოლა ავტომატურად დაიწყება.') + '</p>'
+    + '<div class="vs"><span class="p1">' + esc(nm('h')) + '</span><span class="v">' + (boss ? 'და' : 'vs') + '</span><span class="p2 wait">ველოდებით<span class="dots"></span></span></div>'
+    + '<button class="link" id="btn-leave">გასვლა</button></section>';
+}
+function fightHTML(){
+  const hero = S.hero[role] || myHero;
+  const tabs = SLOT.map((s, i) => '<button class="tab ' + s.k + '" role="tab" id="tab-' + i + '" data-t="' + i + '" aria-selected="' + (i === tab) + '">' + ICON[s.k] + '<span>' + s.name + '</span><span class="tv">' + slotVal(i, hero) + '</span></button>').join('');
+  const cards = SLOT.map((s, i) => '<article class="qc ' + s.k + '" id="qc-' + i + '" data-sl="' + i + '"><header>' + ICON[s.k] + '<span>' + s.name + '</span><span class="val">' + slotVal(i, hero) + '</span><span class="rvb">რევანში ×2</span><span class="tag" id="tag-' + i + '"></span></header><div class="qbody"></div><div class="claim" id="claim-' + i + '"></div></article>').join('');
+  return '<section class="fight">'
+    + '<div class="learn" id="learn"><span class="li">' + ICON.bulb + '</span><span class="lt"><b>აქ გამოჩნდება ახსნა</b><span>ყოველი აღებული ბარათის შემდეგ ნახავ სწორ პასუხს და მიზეზს.</span></span></div>'
+    + '<div class="tabs" role="tablist">' + tabs + '</div><div class="cards" id="cards" data-tab="' + tab + '">' + cards + '</div>'
+    + '<p class="hint">ვინც პირველი უპასუხებს სწორად, ის იღებს ბარათს. შეცდომის შემდეგ ამ ბარათზე ვეღარ უპასუხებ, დანარჩენი სამი კი ღიაა.</p></section>';
+}
+function cardBody(cd){
+  const q = BANK[cd.q], perm = cd.o.split('').map(Number);
+  return '<p class="qp">' + fmt(q.p) + '</p>' + (q.code ? '<pre class="code">' + hl(q.code) + '</pre>' : '')
+    + '<div class="opts">' + perm.map((oi, i) => '<button class="opt" data-c="' + oi + '"><span class="ok">' + 'ABCD'[i] + '</span><span class="ot">' + fmt(q.o[oi]) + '</span></button>').join('') + '</div>'
+    + '<p class="lockmsg" id="lm-' + cd.q + '"></p>';
+}
+function endHTML(){
+  const boss = S.mode === 'boss', me = role, ps = players(), e = S.end || {};
+  let title, why;
+  if (boss) {
+    title = e.w === 'team' ? 'ბაგი დამარცხდა!' : 'ბაგმა გაიმარჯვა';
+    why = e.why === 'boss' ? 'გუნდის გამარჯვება' : e.why === 'time' ? 'დრო ამოიწურა' : e.why === 'left' ? 'მეგობარი გავიდა' : 'ყველა დაეცა';
+  } else {
+    title = e.w === 'd' ? 'ფრე!' : e.w === me ? 'შენ მოიგე!' : nm(e.w) + ' იმარჯვებს';
+    why = e.why === 'ko' ? 'ნოკაუტით' : e.why === 'left' ? 'მოწინააღმდეგე გავიდა' : 'დრო ამოიწურა, მეტი სიცოცხლე დარჩა';
+  }
+  const cols = ps.length, grid = 'grid-template-columns:auto repeat(' + cols + ',minmax(0,1fr))';
+  const rows = [
+    ['დარჩენილი სიცოცხლე', p => S.hp[p]], ['სწორი პასუხები', p => S.sc[p].ok], ['შეცდომები', p => S.sc[p].bad],
+    ['მიყენებული ზიანი', p => S.sc[p].dmg], ['კრიტიკული დარტყმები', p => S.sc[p].crit], ['განკურნება', p => S.sc[p].heal], ['დაბლოკილი', p => S.sc[p].blk],
+  ];
+  let table = '<div class="res" style="' + grid + '"><div class="l"></div>' + ps.map(p => '<div class="hd" style="color:' + (p === 'h' ? '#1E8A7B' : '#4C67C9') + '">' + esc(nm(p)) + '</div>').join('');
+  rows.forEach((r, i) => { const last = i === rows.length - 1 ? ' last' : ''; table += '<div class="l' + last + '">' + r[0] + '</div>' + ps.map(p => '<div class="' + last + '">' + r[1](p) + '</div>').join(''); });
+  table += '</div>';
+  const mine = medalsOf(me);
+  const earned = mine.length ? '<div class="earned">' + mine.map(id => { const m = MEDALS.find(x => x.id === id); return '<div class="medal' + (newMedals.includes(id) ? ' new' : '') + '"><span class="me">' + m.e + '</span><span><b>' + m.n + '</b><br><small>' + (newMedals.includes(id) ? 'ახალი მედალი!' : m.d) + '</small></span></div>'; }).join('') + '</div>' : '<p class="note">ამ ბრძოლაში მედალი არ აგიღია. მედლების სია მთავარ გვერდზეა.</p>';
+  const review = mistakes.length
+    ? '<div class="review"><h3>შენი შეცდომები · ' + mistakes.length + '</h3>' + mistakes.map(m => {
+        const q = BANK[m.q]; if (!q) return '';
+        return '<div class="rv-item"><p class="q">' + fmt(q.p) + '</p>' + (q.code ? '<pre class="code">' + hl(q.code) + '</pre>' : '')
+          + '<div class="yours"><b>შენ: ' + fmt(q.o[m.c]) + '</b>' + fmt(q.w[m.c] || '') + '</div>'
+          + '<div class="right"><b>სწორი: ' + fmt(q.o[q.c]) + '</b>' + fmt(q.x) + '</div></div>';
+      }).join('') + '</div>'
+    : '<p class="note">შეცდომა არ დაგიშვია. ყოჩაღ! 🎉</p>';
+  return '<section class="endp"><p class="eyebrow">' + esc(why) + '</p><h2>' + esc(title) + '</h2>' + table + earned
+    + '<div class="end-actions">' + (role === 'h' ? '<button class="btn primary" id="btn-again">' + (boss ? 'ხელახლა ბაგთან' : 'რევანში') + '</button>' : '<p class="note">ახალ ბრძოლას მასპინძელი იწყებს.</p>')
+    + '<button class="btn" id="btn-home">მთავარზე</button></div>' + review + '</section>';
+}
+function bind(sc){
+  const on = (s, ev, fn) => { const el = $(s); if (el) el.addEventListener(ev, fn); };
+  if (sc === 'home') {
+    on('#btn-create', 'click', () => createGame('duel')); on('#btn-join', 'click', joinGame); on('#btn-bot', 'click', () => startLocal('duel'));
+    on('#btn-boss-solo', 'click', () => startLocal('boss')); on('#btn-boss-coop', 'click', () => createGame('boss'));
+    on('#in-code', 'input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+    on('#in-code', 'keydown', e => { if (e.key === 'Enter') joinGame(); });
+    on('#in-name', 'input', e => { myName = clean(e.target.value).slice(0, 18); store.set('bfa-name', myName); });
+    $$('#heroes .hero').forEach(b => b.addEventListener('click', () => {
+      myHero = b.dataset.h; store.set('bfa-hero', myHero);
+      $$('#heroes .hero').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      if (homeRival === myHero) homeRival = null;
+      setupHomeFighters(); updateHud(); sfx.card(); showEmote('h', '🔥');
+    }));
+    $$('#topics .chipb').forEach(b => b.addEventListener('click', () => {
+      myTopic = b.dataset.t; store.set('bfa-topic', myTopic);
+      $$('#topics .chipb').forEach(x => x.setAttribute('aria-pressed', String(x === b))); sfx.card();
+    }));
+  }
+  if (sc === 'wait') on('#btn-cancel', 'click', resetHome);
+  if (sc === 'lobby') {
+    on('#btn-leave', 'click', resetHome);
+    on('#btn-copy', 'click', e => {
+      const b = e.currentTarget, done = () => { b.textContent = 'დაკოპირდა'; setTimeout(() => b.textContent = 'კოდის კოპირება', 1500); };
+      try { navigator.clipboard.writeText(S.code).then(done, selCode); } catch { selCode(); }
+    });
+  }
+  if (sc === 'fight') {
+    $$('.tab').forEach(b => b.addEventListener('click', () => { tab = Number(b.dataset.t); $('#cards').dataset.tab = tab; $$('.tab').forEach(x => x.setAttribute('aria-selected', String(x === b))); sfx.card(); }));
+  }
+  if (sc === 'end') {
+    on('#btn-again', 'click', () => { if (role === 'h') { newMedals = []; startCountdown(); } });
+    on('#btn-home', 'click', () => { newMedals = []; resetHome(); });
+  }
+}
+function selCode(){ const el = $('#room-code'); if (!el) return; const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+function update(sc){
+  if (sc === 'home') { const e = $('#home-err'); if (e) e.textContent = homeErr; return; }
+  if (sc === 'lobby') {
+    const g = $('.vs .p2'); if (!g) return;
+    if (S.names.g) { g.classList.remove('wait'); g.textContent = S.names.g; } else { g.classList.add('wait'); g.innerHTML = 'ველოდებით<span class="dots"></span>'; }
+    return;
+  }
+  if (sc === 'fight') updateCards();
+}
+function updateCards(){
+  if (!S || !S.cards) return;
+  const me = role, others = players().filter(p => p !== me);
+  for (let sl = 0; sl < 4; sl++) {
+    const el = $('#qc-' + sl), cd = S.cards[sl]; if (!el) continue;
+    const body = $('.qbody', el);
+    if (!cd) { if (cardKey[sl] !== 'wait') { cardKey[sl] = 'wait'; body.innerHTML = '<p class="note">კითხვა გამოჩნდება ათვლის შემდეგ.</p>'; } continue; }
+    if (cardKey[sl] !== cd.q) {
+      cardKey[sl] = cd.q; pend[sl] = null;
+      body.innerHTML = cardBody(cd);
+      $$('.opt', body).forEach(b => b.addEventListener('click', () => { b.classList.add('picked'); answer(sl, cd.q, Number(b.dataset.c)); }));
+      el.classList.remove('fresh'); void el.offsetWidth; el.classList.add('fresh');
+    }
+    el.classList.toggle('rv', !!cd.r);
+    const t = $('#tab-' + sl); if (t) t.classList.toggle('rvd', !!cd.r);
+    const locked = cd.lk.includes(me), lockKey = sl + ':' + cd.q;
+    if (locked && !lockSeen.has(lockKey)) {
+      lockSeen.add(lockKey); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+      const lp = lastPick[sl], q = BANK[cd.q];
+      if (lp && lp.q === cd.q) {
+        mistakes.push({q:cd.q, c:lp.c});
+        const lm = $('.lockmsg', el);
+        if (lm) lm.innerHTML = '<b>„' + fmt(q.o[lp.c]) + '" არასწორია</b>' + fmt(q.w[lp.c] || 'სცადე სხვა ბარათი.') + ' სწორ პასუხს ბარათის აღების შემდეგ ნახავ.';
+        $$('.opt', el).forEach(b => b.classList.toggle('picked', Number(b.dataset.c) === lp.c));
+      } else {
+        const lm = $('.lockmsg', el); if (lm) lm.innerHTML = '<b>შეცდი.</b>სცადე სხვა ბარათი.';
+      }
+    }
+    el.classList.toggle('locked', locked);
+    const dis = S.ph !== 'fight' || locked || pend[sl] === cd.q || !alive(me);
+    $$('.opt', el).forEach(b => { b.disabled = dis; if (!dis) b.classList.remove('picked'); });
+    const wrongOthers = others.filter(p => cd.lk.includes(p));
+    const tagTxt = wrongOthers.length ? wrongOthers.map(nm).join(', ') + '-მ შეცდა' : '';
+    const tag = $('#tag-' + sl); if (tag.textContent !== tagTxt) tag.textContent = tagTxt;
+    if (t) t.classList.toggle('lockd', locked);
+  }
+}
+
+render();
+requestAnimationFrame(frame);
+</script>

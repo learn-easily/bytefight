@@ -1,0 +1,1098 @@
+<title>Bytefight აკადემია</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Georgian:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: a campus of four worlds. Hub = 2×2 world doors; a level = case/brief on the left, the workbench on the right. One calm light look with a colour per world. */
+:root{
+  --bg:#EDF1EE; --card:#FFFFFF; --soft:#F5F8F6; --line:#D3DCD7; --ink:#1D2A2E; --muted:#5A6A6E;
+  --det:#B97A1E; --det-soft:#F7EBD7; --fac:#23927F; --fac-soft:#DCF0EA; --shop:#3573BE; --shop-soft:#DFEAF7; --maze:#7F57C2; --maze-soft:#ECE4F8;
+  --ok:#2F8F5E; --ok-soft:#DFF1E6; --bad:#BF5246; --bad-soft:#F6E1DD; --warn:#A87A22; --warn-soft:#F6EBD3;
+  --code:#F1F5F3; --code-dark:#18242A;
+  --kw:#2F7368; --str:#9A6234; --type:#4F64A8; --num:#8A4F8C; --com:#86948E; --key:#3E62A8;
+  --f-ui:"Noto Sans Georgian",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:default}
+select{font:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+code,.mono{font-family:var(--f-mono)}
+code{font-size:.86em;background:var(--code);border:1px solid var(--line);border-radius:5px;padding:.04em .35em}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:rgba(237,241,238,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:21;background:var(--bg)}
+.top .wrap{display:flex;align-items:center;gap:12px;padding-block:10px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.02rem;background:none;border:0;padding:0}
+.logo{flex:none;width:30px;height:30px;border-radius:9px;background:var(--ink);color:#fff;display:grid;place-items:center;font-family:var(--f-mono);font-size:.8rem;font-weight:600}
+.crumb{color:var(--muted);font-size:.9rem;display:flex;align-items:center;gap:6px;min-width:0}
+.crumb button{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+.crumb span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xp{margin-left:auto;display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;white-space:nowrap}
+.xp .bar{width:90px;height:8px;border-radius:5px;background:var(--line);overflow:hidden}
+.xp .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--fac),var(--shop),var(--maze))}
+.snd{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;padding:0}
+.snd[aria-pressed="false"]{opacity:.5}
+.ico{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+main{padding-block:20px 60px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--card);padding:9px 16px;border-radius:999px;font-weight:600;font-size:.92rem;transition:transform .12s,border-color .2s,filter .2s;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:var(--ink)}
+.btn:active:not(:disabled){transform:translateY(1px) scale(.98)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.primary:hover:not(:disabled){filter:brightness(1.25)}
+.btn:disabled{opacity:.45}
+.btn.sm{padding:6px 12px;font-size:.84rem}
+.eyebrow{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.note{color:var(--muted);font-size:.9rem}
+.stars{display:inline-flex;gap:2px;color:#E3B341}
+.stars svg{width:16px;height:16px;fill:currentColor;stroke:none}
+.stars .off{color:#D3DCD7}
+
+/* hub */
+.hub{display:flex;flex-direction:column;gap:22px}
+.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;align-items:center}
+.hero h1{font-weight:800;font-size:clamp(1.7rem,4.6vw,2.6rem);letter-spacing:-.01em;line-height:1.15;text-wrap:balance}
+.hero p{color:var(--muted);max-width:60ch;margin-top:8px}
+.rank{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.rank b{font-size:1.15rem}
+.rank .track{height:10px;border-radius:6px;background:var(--line);overflow:hidden}
+.rank .track i{display:block;height:100%;background:linear-gradient(90deg,var(--fac),var(--shop),var(--maze))}
+.worlds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.world{--c:var(--det);--cs:var(--det-soft);position:relative;display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;align-items:center;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;transition:transform .15s,box-shadow .2s;overflow:hidden}
+.world:hover{transform:translateY(-2px);box-shadow:0 14px 30px -18px rgba(20,40,40,.4)}
+.world.fac{--c:var(--fac);--cs:var(--fac-soft)} .world.shop{--c:var(--shop);--cs:var(--shop-soft)} .world.maze{--c:var(--maze);--cs:var(--maze-soft)}
+.world .art{width:120px;height:120px;border-radius:14px;background:var(--cs);display:grid;place-items:center}
+.world .art svg{width:96px;height:96px}
+.world h2{font-size:1.2rem;font-weight:800}
+.world .tg{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 10px}
+.world .tg span{font-size:.74rem;font-weight:600;color:var(--c);background:var(--cs);border-radius:999px;padding:2px 9px}
+.world p{color:var(--muted);font-size:.9rem}
+.world .wprog{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:.84rem;color:var(--muted)}
+.world .wprog .bar{flex:1;height:7px;border-radius:5px;background:var(--line);overflow:hidden}
+.world .wprog .bar i{display:block;height:100%;background:var(--c)}
+
+/* world map */
+.wmap{display:flex;flex-direction:column;gap:18px}
+.whead{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.whead .art{width:72px;height:72px;border-radius:14px;display:grid;place-items:center}
+.whead .art svg{width:58px;height:58px}
+.whead h1{font-size:clamp(1.4rem,4vw,2rem);font-weight:800}
+.levels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.lv{--c:var(--det);--cs:var(--det-soft);display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;position:relative;min-width:0}
+.lv .n{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--cs);color:var(--c);font-weight:800;font-family:var(--f-mono)}
+.lv b{font-size:1rem}
+.lv small{color:var(--muted);font-size:.82rem}
+.lv .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lv:not(:disabled):hover{border-color:var(--c)}
+.lv:disabled{opacity:.5}
+.lv:disabled .n{background:var(--line);color:var(--muted)}
+.lv.done{border-color:color-mix(in srgb,var(--c) 45%,var(--line))}
+
+/* level shell */
+.lhead{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.lhead .tt{flex:1;min-width:0}
+.lhead h1{font-size:clamp(1.25rem,3.4vw,1.7rem);font-weight:800;line-height:1.25}
+.split{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.25fr);gap:16px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h3{font-size:.95rem;font-weight:800}
+.story{font-size:.95rem}
+.goal{display:flex;gap:10px;align-items:flex-start;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:.9rem}
+.goal b{display:block}
+.hintbox{background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);border-radius:12px;padding:10px 12px;font-size:.88rem;color:#6B4C12}
+.fb{border-radius:12px;padding:10px 12px;font-size:.9rem;display:none}
+.fb.show{display:block}
+.fb.bad{background:var(--bad-soft);color:#7E3128}
+.fb.ok{background:var(--ok-soft);color:#1E5B3B}
+.fb b{display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row.end{justify-content:flex-end}
+pre.code{margin:0;background:var(--code);border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow-x:auto;font-family:var(--f-mono);font-size:.82rem;line-height:1.7;white-space:pre}
+.t-kw{color:var(--kw);font-weight:600} .t-str{color:var(--str)} .t-type{color:var(--type)} .t-num{color:var(--num)} .t-com{color:var(--com);font-style:italic} .t-key{color:var(--key)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--soft)}
+.seg button{border:0;background:none;padding:6px 12px;font-size:.84rem;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:.76rem;background:var(--soft);font-family:var(--f-mono)}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.out td{opacity:.32}
+tr.in td{background:color-mix(in srgb,var(--c, var(--det)) 9%,transparent)}
+tr.chg td{background:var(--ok-soft)}
+.pill{display:inline-block;font-size:.74rem;font-weight:700;border-radius:999px;padding:1px 9px}
+
+/* detective */
+.det{--c:var(--det);--cs:var(--det-soft)}
+.paper{background:#FFFDF8;border:1px solid #E8DCC4;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 0 #E8DCC4,0 2px 0 #F3EBDD}
+.clues{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.clues li{display:flex;gap:8px;align-items:flex-start;font-size:.92rem}
+.clues li::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--det);margin-top:.5em;flex:none}
+.qed{background:var(--code-dark);color:#DDE7E3;border-radius:12px;padding:12px 14px;font-family:var(--f-mono);font-size:.84rem;line-height:2;overflow-x:auto}
+.qed .ln{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.qed .ind{display:inline-block;width:2.2em;flex:none}
+.qed .m{color:#F2C46D} .qed .k{color:#7FC8B8} .qed .s{color:#E9B48A} .qed .p{color:#9AA9A4}
+.qed select{background:#24343B;color:#F4F7F5;border:1px solid #3A4E56;border-radius:6px;padding:1px 4px;font-family:var(--f-mono);font-size:.82rem}
+.qed .x{margin-left:8px;background:none;border:1px solid #3A4E56;color:#C9D5D1;border-radius:6px;padding:0 7px;font-size:.78rem;line-height:1.6}
+.qed .x:hover{border-color:#E9B48A;color:#E9B48A}
+.opbtn{font-family:var(--f-mono);font-size:.8rem;padding:6px 10px;border-radius:9px;border:1px dashed color-mix(in srgb,var(--c) 60%,var(--line));background:var(--cs);color:color-mix(in srgb,var(--c) 70%,#000);font-weight:600}
+.opbtn:disabled{opacity:.4}
+.qres{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-height:62px;background:var(--soft)}
+.qres .big{font-family:var(--f-mono);font-size:1.4rem;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.82rem;padding:3px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+.err-x{font-family:var(--f-mono);font-size:.82rem;color:var(--bad)}
+
+/* factory */
+.fac{--c:var(--fac);--cs:var(--fac-soft)}
+.reqs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.reqs li{display:flex;gap:8px;align-items:flex-start;font-size:.9rem}
+.reqs li i{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none;margin-top:2px;display:grid;place-items:center;font-style:normal;font-size:.7rem;color:#fff}
+.reqs li.ok i{background:var(--ok);border-color:var(--ok)}
+.reqs li.ok i::after{content:"✓"}
+.ctabs{display:flex;gap:6px;flex-wrap:wrap}
+.ctab{font-family:var(--f-mono);font-size:.84rem;font-weight:600;padding:6px 12px;border-radius:10px;border:1px solid var(--line);background:var(--soft)}
+.ctab[aria-pressed="true"]{background:var(--card);border-color:var(--c);box-shadow:inset 0 -3px 0 var(--c)}
+.bp{background:var(--code-dark);color:#DDE7E3;border-radius:12px;padding:12px 14px;font-family:var(--f-mono);font-size:.84rem;line-height:1.9;overflow-x:auto}
+.bp .hd{display:flex;align-items:center;gap:6px;flex-wrap:wrap;white-space:nowrap}
+.bp select{background:#24343B;color:#F4F7F5;border:1px solid #3A4E56;border-radius:6px;padding:1px 4px;font-family:var(--f-mono);font-size:.82rem}
+.bp .ifc{background:#24343B;color:#9AA9A4;border:1px dashed #3A4E56;border-radius:6px;padding:0 7px;font-family:var(--f-mono);font-size:.8rem}
+.bp .ifc[aria-pressed="true"]{color:#7FC8B8;border-style:solid;border-color:#7FC8B8}
+.bp .mem{display:flex;align-items:center;gap:8px;padding-left:2.2em;white-space:nowrap}
+.bp .mem .x{background:none;border:1px solid #3A4E56;color:#C9D5D1;border-radius:6px;padding:0 7px;font-size:.78rem;line-height:1.6}
+.bp .pre{opacity:.7}
+.bp .empty{padding-left:2.2em;color:#7C8C87;font-style:italic}
+.palette{display:flex;flex-direction:column;gap:6px}
+.part{display:flex;align-items:center;gap:10px;text-align:left;padding:8px 10px;border-radius:10px;border:1px dashed color-mix(in srgb,var(--c) 55%,var(--line));background:var(--cs);font-family:var(--f-mono);font-size:.8rem;min-width:0}
+.part span{overflow-wrap:anywhere;white-space:pre-wrap}
+.part:disabled{opacity:.4}
+.part .plus{flex:none;width:22px;height:22px;border-radius:7px;background:var(--card);display:grid;place-items:center;font-weight:700;color:var(--c)}
+.console{background:#101A1F;color:#CFE0DA;border-radius:12px;padding:10px 12px;font-family:var(--f-mono);font-size:.8rem;line-height:1.6;display:flex;flex-direction:column;gap:6px;min-height:46px}
+.console .e{color:#FF9C8C} .console .w{color:#F2C46D} .console .o{color:#8FE0B5}
+.console .ka{font-family:var(--f-ui);color:#AFC0BA;font-size:.82rem}
+.robots{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;background:linear-gradient(180deg,#E6F2EE,#F7FAF8);border:1px solid var(--line);border-radius:14px;padding:12px;min-height:170px;align-items:flex-end}
+.rb{display:flex;flex-direction:column;align-items:center;gap:4px}
+.rb svg{width:120px;height:140px;overflow:visible}
+.rb small{font-family:var(--f-mono);font-size:.76rem;font-weight:600}
+.rb .bub{font-size:.76rem;background:#fff;border:1px solid var(--line);border-radius:10px;padding:2px 8px;opacity:0;transition:opacity .3s}
+.rb.live .bub{opacity:1}
+.rb.live svg{animation:bob 1s ease-in-out infinite}
+.rb.live .prop{animation:spin .25s linear infinite;transform-box:fill-box;transform-origin:center}
+.rb.live .spark{animation:blink .3s steps(2) infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blink{50%{opacity:0}}
+
+/* shop */
+.shop{--c:var(--shop);--cs:var(--shop-soft)}
+.ticket{display:flex;gap:12px;align-items:flex-start;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:12px}
+.ava{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff;flex:none}
+.ticket .msg{background:var(--card);border:1px solid var(--line);border-radius:4px 14px 14px 14px;padding:8px 12px;font-size:.93rem}
+.ticket b{font-size:.84rem}
+.dots{display:flex;gap:6px}
+.dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dots i.done{background:var(--ok)} .dots i.cur{background:var(--shop);box-shadow:0 0 0 3px var(--shop-soft)}
+.reqb{display:flex;flex-direction:column;gap:10px}
+.mseg{display:flex;gap:6px;flex-wrap:wrap}
+.mbtn{font-family:var(--f-mono);font-weight:600;font-size:.84rem;padding:7px 12px;border-radius:9px;border:1px solid var(--line);background:var(--card)}
+.mbtn[aria-pressed="true"]{color:#fff}
+.mbtn.GET[aria-pressed="true"]{background:#2F8F5E;border-color:#2F8F5E} .mbtn.POST[aria-pressed="true"]{background:#3573BE;border-color:#3573BE}
+.mbtn.PUT[aria-pressed="true"]{background:#A87A22;border-color:#A87A22} .mbtn.DELETE[aria-pressed="true"]{background:#BF5246;border-color:#BF5246}
+.url{display:flex;align-items:center;gap:4px;font-family:var(--f-mono);font-size:.9rem;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:8px 12px;flex-wrap:wrap}
+.url select{font-family:var(--f-mono);font-size:.86rem;border:1px solid var(--line);border-radius:6px;background:var(--card);padding:1px 4px}
+.bodies{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.bodyc{text-align:left;border:1px solid var(--line);border-radius:12px;background:var(--code);padding:0;overflow:hidden;min-width:0}
+.bodyc pre{margin:0;padding:10px 12px;font-family:var(--f-mono);font-size:.76rem;line-height:1.6;white-space:pre;overflow-x:auto}
+.bodyc .bh{display:block;font-size:.74rem;font-weight:700;padding:5px 10px;border-bottom:1px solid var(--line);background:var(--card);color:var(--muted)}
+.bodyc[aria-pressed="true"]{border-color:var(--shop);box-shadow:0 0 0 2px var(--shop-soft)}
+.bodyc[aria-pressed="true"] .bh{color:var(--shop)}
+.resp{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.resp .rh{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--soft);border-bottom:1px solid var(--line);font-size:.86rem}
+.resp pre{margin:0;padding:10px 12px;font-family:var(--f-mono);font-size:.78rem;line-height:1.6;max-height:240px;overflow:auto;white-space:pre}
+.st{font-family:var(--f-mono);font-weight:700;border-radius:6px;padding:1px 8px;color:#fff}
+.st.s2{background:var(--ok)} .st.s4{background:var(--bad)}
+.statq{display:flex;flex-wrap:wrap;gap:8px}
+.statq button{font-family:var(--f-mono);font-weight:700;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;align-items:flex-start;gap:0}
+.statq button small{font-family:var(--f-ui);font-weight:500;color:var(--muted);font-size:.74rem}
+.reqline{font-family:var(--f-mono);font-size:.9rem;background:var(--code-dark);color:#DDE7E3;border-radius:10px;padding:10px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* maze */
+.maze{--c:var(--maze);--cs:var(--maze-soft)}
+.grid-wrap{display:flex;justify-content:center;background:#1C2530;border-radius:14px;padding:12px}
+.grid-wrap svg{width:100%;max-width:460px;height:auto;display:block}
+.robot{transition:transform .22s ease}
+.pal{display:flex;flex-wrap:wrap;gap:6px}
+.blk{font-family:var(--f-mono);font-size:.8rem;font-weight:600;padding:7px 10px;border-radius:9px;border:1px solid transparent;color:#fff}
+.blk.a{background:#7F57C2} .blk.t{background:#3573BE} .blk.l{background:#23927F} .blk.c{background:#B97A1E}
+.prog{background:var(--code-dark);color:#DDE7E3;border-radius:12px;padding:10px 12px;font-family:var(--f-mono);font-size:.84rem;line-height:1.85;overflow-x:auto;min-height:120px}
+.prog .ln{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.prog .ctl{display:inline-flex;gap:3px;margin-left:8px;opacity:.75}
+.prog .ctl button{background:none;border:1px solid #3A4E56;color:#C9D5D1;border-radius:6px;padding:0 6px;font-size:.74rem;line-height:1.6}
+.prog .slot{border:1px dashed #4A5E66;color:#7C8C87;border-radius:6px;padding:0 8px;font-size:.76rem;background:none;line-height:1.7}
+.prog .slot.sel{border-color:#C7A8FF;color:#E5D6FF;background:rgba(199,168,255,.12)}
+.prog .ln.run{background:rgba(199,168,255,.16);border-radius:4px}
+.prog select{background:#24343B;color:#F4F7F5;border:1px solid #3A4E56;border-radius:6px;font-family:var(--f-mono);font-size:.8rem}
+.prog .m{color:#F2C46D} .prog .k{color:#7FC8B8} .prog .p{color:#9AA9A4}
+.counter{font-family:var(--f-mono);font-size:.84rem;font-weight:600}
+.counter.over{color:var(--bad)}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(18,28,32,.45);display:grid;place-items:center;padding:16px;animation:fade .2s}
+.modal[hidden]{display:none}
+.mcard{background:var(--card);border-radius:20px;padding:22px;max-width:560px;width:100%;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 60px -30px rgba(0,0,0,.5);animation:rise .35s cubic-bezier(.2,1.4,.4,1);max-height:90vh;overflow:auto}
+.mcard h2{font-size:1.5rem;font-weight:800;text-align:center}
+.bigstars{display:flex;justify-content:center;gap:8px}
+.bigstars svg{width:46px;height:46px;fill:#D3DCD7}
+.bigstars svg.on{fill:#E3B341;animation:pop .45s cubic-bezier(.2,1.8,.4,1) both}
+.bigstars svg.on:nth-child(2){animation-delay:.15s} .bigstars svg.on:nth-child(3){animation-delay:.3s}
+.learned{background:var(--ok-soft);border-radius:12px;padding:12px 14px;font-size:.92rem;color:#1E4D35}
+.learned b{display:block;margin-bottom:4px}
+@keyframes fade{from{opacity:0}}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.96)}}
+@keyframes pop{from{transform:scale(0)}}
+.shake{animation:shk .35s}
+@keyframes shk{25%{transform:translateX(-5px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
+
+@media (max-width:980px){ .split{grid-template-columns:1fr} .levels{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:760px){ .worlds{grid-template-columns:1fr} .hero{grid-template-columns:1fr} .bodies{grid-template-columns:1fr} }
+@media (max-width:520px){ .world{grid-template-columns:76px minmax(0,1fr)} .world .art{width:76px;height:76px} .world .art svg{width:60px;height:60px} .levels{grid-template-columns:1fr} .xp .bar{display:none} .crumb{display:none} .brand span:last-child{display:none} }
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+
+<header class="top"><div class="wrap">
+  <button class="brand" id="go-hub"><span class="logo">{ }</span><span>Bytefight აკადემია</span></button>
+  <div class="crumb" id="crumb"></div>
+  <div class="xp"><span id="xp-txt"></span><span class="bar"><i id="xp-bar"></i></span></div>
+  <button class="snd" id="btn-snd" aria-pressed="true" aria-label="ხმა"><svg class="ico" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg></button>
+</div></header>
+<main class="wrap" id="view"></main>
+<div class="modal" id="modal" hidden></div>
+
+<script>
+'use strict';
+/* =================== helpers =================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch {} } };
+const STAR = '<svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8z"/></svg>';
+const starsHTML = n => '<span class="stars">' + [0, 1, 2].map(i => STAR.replace('<svg', '<svg class="' + (i < n ? '' : 'off') + '"')).join('') + '</span>';
+const KW = 'abstract|bool|class|decimal|double|else|false|for|foreach|get|if|in|int|interface|new|null|override|private|protected|public|return|set|string|var|virtual|void|while|true';
+const TOK = new RegExp('(\\/\\/.*$|\\/\\*.*?\\*\\/)|("(?:[^"\\\\]|\\\\.)*")|(\\b(?:' + KW + ')\\b)|(\\b\\d+(?:\\.\\d+)?\\b)|(\\b[A-Z][A-Za-z0-9_]*\\b)', 'gm');
+function hl(src){
+  return src.split('\n').map(line => {
+    let out = '', last = 0, m; TOK.lastIndex = 0;
+    while ((m = TOK.exec(line))) {
+      out += esc(line.slice(last, m.index));
+      const c = m[1] ? 't-com' : m[2] ? 't-str' : m[3] ? 't-kw' : m[4] ? 't-num' : 't-type';
+      out += '<span class="' + c + '">' + esc(m[0]) + '</span>'; last = m.index + m[0].length;
+    }
+    return out + esc(line.slice(last));
+  }).join('\n');
+}
+function jhl(text){
+  return esc(text).replace(/(&quot;(?:[^&]|&(?!quot;))*?&quot;)(\s*:)?|\b(true|false|null)\b|(-?\b\d+(?:\.\d+)?\b)/g, (m, s, colon, kw, num) => {
+    if (s) return colon ? '<span class="t-key">' + s + '</span>' + colon : '<span class="t-str">' + s + '</span>';
+    if (kw) return '<span class="t-kw">' + kw + '</span>';
+    return '<span class="t-num">' + num + '</span>';
+  });
+}
+
+/* =================== sound =================== */
+const Snd = { ac:null, on: store.get('bfac-snd') !== '0' };
+function audio(){ try { if (!Snd.ac) { const C = window.AudioContext || window.webkitAudioContext; if (C) Snd.ac = new C(); } if (Snd.ac && Snd.ac.state === 'suspended') Snd.ac.resume().catch(() => {}); } catch {} }
+function tone(f, d, o = {}){
+  const a = Snd.ac; if (!a || !Snd.on || a.state !== 'running') return;
+  const t = a.currentTime + (o.at || 0), osc = a.createOscillator(), g = a.createGain();
+  osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(f, t); if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + d);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(o.v || .07, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  osc.connect(g); g.connect(a.destination); osc.start(t); osc.stop(t + d + .05);
+}
+const sfx = {
+  click(){ tone(1100, .04, {v:.04, type:'triangle'}); },
+  add(){ tone(660, .07, {v:.05}); tone(990, .08, {v:.04, at:.05}); },
+  del(){ tone(420, .08, {v:.04, type:'triangle', to:300}); },
+  step(){ tone(520, .05, {v:.03, type:'triangle'}); },
+  bad(){ tone(210, .22, {v:.07, type:'triangle', to:160}); },
+  ok(){ [523, 659, 784].forEach((f, i) => tone(f, .2, {v:.06, at:i * .07, type:'triangle'})); },
+  win(){ [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .32, {v:.06, at:i * .09, type:'triangle'})); },
+};
+addEventListener('pointerdown', audio, {passive:true});
+$('#btn-snd').addEventListener('click', () => { audio(); Snd.on = !Snd.on; store.set('bfac-snd', Snd.on ? '1' : '0'); $('#btn-snd').setAttribute('aria-pressed', String(Snd.on)); sfx.click(); });
+$('#btn-snd').setAttribute('aria-pressed', String(Snd.on));
+
+/* =================== progress =================== */
+const P = (() => { try { return JSON.parse(store.get('bfac-prog') || '{}'); } catch { return {}; } })();
+P.s = P.s || {};
+const starsOf = (w, i) => P.s[w + '-' + i] || 0;
+function saveStars(w, i, n){ const k = w + '-' + i; if (n > (P.s[k] || 0)) { P.s[k] = n; store.set('bfac-prog', JSON.stringify(P)); } }
+const unlocked = (w, i) => i === 0 || starsOf(w, i - 1) > 0;
+const totalStars = () => Object.values(P.s).reduce((a, b) => a + b, 0);
+const RANKS = [[0, 'სტაჟიორი'], [10, 'Junior დეველოპერი'], [25, 'Middle დეველოპერი'], [45, 'Senior დეველოპერი'], [65, 'არქიტექტორი']];
+function rankOf(st){ let r = RANKS[0]; for (const x of RANKS) if (st >= x[0]) r = x; const next = RANKS.find(x => x[0] > st); return {name:r[1], at:r[0], next}; }
+
+/* =================== world: detective (LINQ + JSON) =================== */
+const S1 = [
+  {Name:'ნიკა', Age:34, City:'თბილისი', Car:'ლურჯი', Height:182, HasAlibi:true},
+  {Name:'ანა', Age:27, City:'ბათუმი', Car:'წითელი', Height:165, HasAlibi:false},
+  {Name:'გიო', Age:41, City:'თბილისი', Car:'შავი', Height:175, HasAlibi:false},
+  {Name:'მარი', Age:22, City:'ქუთაისი', Car:'თეთრი', Height:170, HasAlibi:true},
+  {Name:'ლევანი', Age:38, City:'თბილისი', Car:'წითელი', Height:188, HasAlibi:false},
+  {Name:'თამო', Age:31, City:'ბათუმი', Car:'შავი', Height:160, HasAlibi:true},
+  {Name:'დათო', Age:45, City:'ქუთაისი', Car:'წითელი', Height:179, HasAlibi:true},
+  {Name:'სალომე', Age:29, City:'თბილისი', Car:'ლურჯი', Height:168, HasAlibi:false},
+];
+const S2 = [
+  {Name:'ირაკლი', Age:36, City:'თბილისი', Car:'ვერცხლისფერი', Height:181, Alibi:{Place:'კინო', Verified:true}},
+  {Name:'ნინო', Age:24, City:'რუსთავი', Car:'წითელი', Height:166, Alibi:{Place:'სახლი', Verified:false}},
+  {Name:'ბექა', Age:33, City:'თბილისი', Car:'შავი', Height:177, Alibi:{Place:'სახლი', Verified:false}},
+  {Name:'ქეთი', Age:40, City:'რუსთავი', Car:'ლურჯი', Height:172, Alibi:{Place:'სამსახური', Verified:true}},
+  {Name:'ზურა', Age:28, City:'თბილისი', Car:'შავი', Height:190, Alibi:{Place:'სპორტდარბაზი', Verified:false}},
+  {Name:'ელენე', Age:31, City:'მცხეთა', Car:'თეთრი', Height:163, Alibi:{Place:'სახლი', Verified:true}},
+  {Name:'რატი', Age:26, City:'რუსთავი', Car:'შავი', Height:184, Alibi:{Place:'კაფე', Verified:false}},
+];
+const DET_LEVELS = [
+  {title:'მოპარული ველოსიპედი', concept:'Where', data:S1, ops:['Where'], opt:1, goal:{type:'one', name:'მარი'},
+   story:'პარკიდან ველოსიპედი მოიპარეს. ეჭვმიტანილების სია JSON-ში გვაქვს. გაფილტრე ისე, რომ ერთი ადამიანი დარჩეს.',
+   clues:['მოწმემ დაინახა, რომ ქურდი თეთრი მანქანით წავიდა.'],
+   hint:'დაამატე `.Where`, აირჩიე ველი `Car`, ოპერატორი `==` და მნიშვნელობა "თეთრი".',
+   learn:'`Where` ფილტრავს: ტოვებს მხოლოდ იმ ელემენტებს, რომლებზეც პირობა true-ა. `s => s.Car == "თეთრი"` არის lambda: „ყოველი s-ისთვის შეამოწმე, თეთრია თუ არა მანქანა".'},
+  {title:'ორი მინიშნება', concept:'Where + Where', data:S1, ops:['Where'], opt:2, goal:{type:'one', name:'ლევანი'},
+   story:'ბანკთან ფანჯარა ჩაამტვრიეს. მოწმეებმა ორი რამ დაინახეს.',
+   clues:['დამნაშავეს წითელი მანქანა ჰქონდა.', 'ის თბილისში ცხოვრობს.'],
+   hint:'ერთი Where საკმარისი არ არის: ჯერ მანქანით გაფილტრე, მერე ქალაქით.',
+   learn:'LINQ-ის მეთოდები ჯაჭვად ებმის: ყოველი `.Where` წინა შედეგს კიდევ ავიწროებს. იგივეა, რაც ერთი Where-ი `&&`-ით.'},
+  {title:'ყველაზე ახალგაზრდა', concept:'OrderBy + First', data:S1, ops:['Where', 'OrderBy', 'OrderByDescending', 'First'], opt:3, goal:{type:'one', name:'ანა'},
+   story:'მუზეუმიდან ნახატი გაქრა. ალიბის მქონეები უდანაშაულოები არიან.',
+   clues:['დამნაშავეს ალიბი არ აქვს.', 'კამერაში ჩანს, რომ ეჭვმიტანილებიდან ყველაზე ახალგაზრდაა.'],
+   hint:'გაფილტრე `HasAlibi == false`, დაალაგე `OrderBy(s => s.Age)` და აიღე `First()`.',
+   learn:'`OrderBy` ზრდადობით ალაგებს, `OrderByDescending` კლებადობით. `First()` პირველ ელემენტს იღებს. ცარიელ სიაზე შეცდომას აგდებს, ამიტომ ჯერ დარწმუნდი, რომ ვინმე დარჩა.'},
+  {title:'რამდენი ეჭვმიტანილი?', concept:'Count', data:S1, ops:['Where', 'Count', 'First'], opt:3, goal:{type:'value', v:2},
+   story:'უფროსი ინსპექტორი გეკითხება: რამდენ ადამიანს უნდა დაუძახოთ დაკითხვაზე?',
+   clues:['დაკითხვაზე იძახებენ მათ, ვისაც ალიბი არ აქვს.', 'და ვინც 30 წელზე უფროსია.'],
+   hint:'ორი Where, ბოლოს `.Count()`. Count აბრუნებს რიცხვს და არა სიას.',
+   learn:'`Count()` ითვლის, რამდენი ელემენტია შედეგში, და აბრუნებს int-ს. ხშირად გამოიყენება ისეთ კითხვებზე, როგორიცაა „რამდენი მომხმარებელი…", „რამდენი შეკვეთა…".'},
+  {title:'ჩადგმული JSON', concept:'ობიექტი ობიექტში', data:S2, ops:['Where'], opt:3, goal:{type:'one', name:'ბექა'},
+   story:'ახალ საქმეში ყოველ ეჭვმიტანილს აქვს Alibi ობიექტი: სად იყო (Place) და დადასტურდა თუ არა (Verified). გახსენი JSON ხედი და ნახე სტრუქტურა.',
+   clues:['ალიბი არ დადასტურდა.', 'შავი მანქანა ჰყავს.', 'ამბობს, რომ სახლში იყო.'],
+   hint:'ჩადგმულ ველს წერტილით მიმართავ: `s.Alibi.Verified`, `s.Alibi.Place`.',
+   learn:'JSON-ში ობიექტი შეიძლება სხვა ობიექტს შეიცავდეს: `"Alibi": { "Place": "სახლი", "Verified": false }`. C#-ში ეს ჩადგმული კლასია და წერტილით მიმართავ: `s.Alibi.Place`.'},
+  {title:'ბოლო საქმე: მანქანის ფერი', concept:'Select', data:S2, ops:['Where', 'OrderBy', 'OrderByDescending', 'Select', 'First', 'Count'], opt:5, goal:{type:'value', v:'შავი'},
+   story:'პოლიციას ეჭვმიტანილი კი არა, მისი მანქანის ფერი სჭირდება საგზაო კამერებისთვის.',
+   clues:['ალიბი არ დადასტურდა.', 'რუსთავში ცხოვრობს.', 'ეჭვმიტანილებიდან ყველაზე მაღალია.', 'პასუხად მხოლოდ მანქანის ფერი გამოიტანე.'],
+   hint:'გაფილტრე, დაალაგე `OrderByDescending(s => s.Height)`, მერე `Select(s => s.Car)` და `First()`.',
+   learn:'`Select` ყოველ ელემენტს სხვა ფორმაში გადაიყვანს: `Select(s => s.Car)` ადამიანების სიიდან მანქანების ფერების სიას აკეთებს. ასე API-ში მხოლოდ საჭირო ველებს აბრუნებ.'},
+];
+const getF = (o, path) => path.split('.').reduce((a, k) => a == null ? a : a[k], o);
+function fieldsOf(data){ const out = []; const walk = (o, pre) => { for (const [k, v] of Object.entries(o)) { if (v && typeof v === 'object') walk(v, pre + k + '.'); else out.push(pre + k); } }; walk(data[0], ''); return out; }
+function valuesOf(data, f){
+  const vals = [...new Set(data.map(d => getF(d, f)))];
+  if (typeof vals[0] === 'number') {
+    const extra = f === 'Age' ? [25, 30, 35, 40] : f === 'Height' ? [170, 175, 180, 185] : [];
+    return [...new Set(vals.concat(extra))].sort((a, b) => a - b);
+  }
+  if (typeof vals[0] === 'boolean') return [true, false];
+  return vals.sort();
+}
+const lit = v => typeof v === 'string' ? '"' + v + '"' : String(v);
+function detEval(data, steps){
+  let cur = data.slice(), objs = data.slice();
+  for (const st of steps) {
+    if (!Array.isArray(cur)) return {err:'First() და Count() ჯაჭვს ასრულებს: მათ შემდეგ სხვა მეთოდს ვეღარ დაამატებ.'};
+    if (st.op === 'Where') {
+      cur = cur.filter(d => { const a = getF(d, st.f), b = st.v; switch (st.cmp) { case '==': return a === b; case '!=': return a !== b; case '>': return a > b; case '<': return a < b; case '>=': return a >= b; case '<=': return a <= b; } return false; });
+      objs = cur;
+    } else if (st.op === 'OrderBy' || st.op === 'OrderByDescending') {
+      const k = st.op === 'OrderBy' ? 1 : -1;
+      cur = cur.slice().sort((x, y) => { const a = getF(x, st.f), b = getF(y, st.f); return (a > b ? 1 : a < b ? -1 : 0) * k; });
+      objs = cur;
+    } else if (st.op === 'Select') { objs = cur; cur = cur.map(d => getF(d, st.f)); }
+    else if (st.op === 'First') { if (!cur.length) return {err:'InvalidOperationException: Sequence contains no elements', ka:'First() ცარიელ სიაზე შეცდომას აგდებს: ფილტრის შემდეგ არავინ დარჩა.'}; const first = cur[0]; if (typeof first === 'object') objs = [first]; cur = first; }
+    else if (st.op === 'Count') { cur = cur.length; }
+  }
+  return {v:cur, objs};
+}
+function mountDetective(stage, lv, idx){
+  let steps = [], wrong = 0, view = 'table', hintShown = false;
+  const fields = fieldsOf(lv.data);
+  const terminal = () => steps.length && (steps[steps.length - 1].op === 'First' || steps[steps.length - 1].op === 'Count');
+  const afterSelect = () => steps.some(s => s.op === 'Select');
+  stage.innerHTML = '<div class="det split">'
+    + '<div class="panel"><div class="paper"><span class="eyebrow">საქმე #' + (idx + 1) + '</span><p class="story">' + fmt(lv.story) + '</p><ul class="clues">' + lv.clues.map(c => '<li>' + fmt(c) + '</li>').join('') + '</ul></div>'
+    + '<div class="goal">' + '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span><b>მიზანი</b>' + (lv.goal.type === 'one' ? 'შედეგში მხოლოდ დამნაშავე უნდა დარჩეს.' : 'შედეგი ერთი მნიშვნელობა უნდა იყოს.') + '</span></div>'
+    + '<div class="row" style="justify-content:space-between"><h3>ეჭვმიტანილები · <span class="mono">suspects</span></h3><div class="seg"><button data-v="table" aria-pressed="true">ცხრილი</button><button data-v="json" aria-pressed="false">JSON</button></div></div><div id="dview"></div></div>'
+    + '<div class="panel"><h3>შენი LINQ query</h3><div class="qed" id="qed"></div><div class="row" id="ops"></div>'
+    + '<h3>შედეგი</h3><div class="qres" id="qout"></div>'
+    + '<div class="hintbox" id="hint" hidden></div><div class="fb" id="fb"></div>'
+    + '<div class="row end"><button class="btn sm" id="btn-hint">მინიშნება</button><button class="btn sm" id="btn-reset">გასუფთავება</button><button class="btn primary" id="btn-go">' + (lv.goal.type === 'one' ? 'დააკავე' : 'უპასუხე') + '</button></div></div></div>';
+  $$('.seg button', stage).forEach(b => b.addEventListener('click', () => { view = b.dataset.v; $$('.seg button', stage).forEach(x => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  $('#btn-hint', stage).addEventListener('click', () => { hintShown = true; const h = $('#hint', stage); h.hidden = false; h.innerHTML = fmt(lv.hint); });
+  $('#btn-reset', stage).addEventListener('click', () => { steps = []; sfx.del(); draw(); });
+  $('#btn-go', stage).addEventListener('click', submit);
+  function addOp(op){
+    const st = {op};
+    if (op === 'Where') { st.f = fields.find(f => f !== 'Name') || fields[0]; st.cmp = '=='; st.v = valuesOf(lv.data, st.f)[0]; }
+    if (op === 'OrderBy' || op === 'OrderByDescending') st.f = 'Age';
+    if (op === 'Select') st.f = 'Car';
+    steps.push(st); sfx.add(); draw();
+  }
+  function sel(opts, cur, attr){ return '<select ' + attr + '>' + opts.map(o => '<option value="' + esc(JSON.stringify(o)) + '"' + (o === cur ? ' selected' : '') + '>' + esc(typeof o === 'string' && attr.includes('val') ? lit(o) : String(o)) + '</option>').join('') + '</select>'; }
+  function draw(){
+    const qed = $('#qed', stage);
+    let h = '<div class="ln"><span class="k">var</span> result = suspects</div>';
+    steps.forEach((st, i) => {
+      let inner = '';
+      const numF = fields.filter(f => typeof getF(lv.data[0], f) === 'number');
+      if (st.op === 'Where') {
+        const vals = valuesOf(lv.data, st.f), isBool = typeof vals[0] === 'boolean', isNum = typeof vals[0] === 'number';
+        const cmps = isNum ? ['==', '!=', '>', '<', '>=', '<='] : ['==', '!='];
+        inner = '<span class="p">(s => s.</span>' + sel(fields, st.f, 'data-i="' + i + '" data-k="f"') + ' ' + sel(cmps, st.cmp, 'data-i="' + i + '" data-k="cmp"') + ' ' + sel(vals, st.v, 'data-i="' + i + '" data-k="v" data-val') + '<span class="p">)</span>';
+        void isBool;
+      } else if (st.op === 'OrderBy' || st.op === 'OrderByDescending') inner = '<span class="p">(s => s.</span>' + sel(numF.concat(fields.filter(f => !numF.includes(f))), st.f, 'data-i="' + i + '" data-k="f"') + '<span class="p">)</span>';
+      else if (st.op === 'Select') inner = '<span class="p">(s => s.</span>' + sel(fields, st.f, 'data-i="' + i + '" data-k="f"') + '<span class="p">)</span>';
+      else inner = '<span class="p">()</span>';
+      h += '<div class="ln"><span class="ind"></span><span class="m">.' + st.op + '</span>' + inner + '<button class="x" data-del="' + i + '" aria-label="წაშლა">×</button></div>';
+    });
+    h += '<div class="ln"><span class="ind"></span><span class="p">;</span></div>';
+    qed.innerHTML = h;
+    $$('select', qed).forEach(s => s.addEventListener('change', () => {
+      const st = steps[Number(s.dataset.i)], v = JSON.parse(s.value);
+      st[s.dataset.k] = v;
+      if (s.dataset.k === 'f' && st.op === 'Where') { st.v = valuesOf(lv.data, st.f)[0]; const isNum = typeof st.v === 'number'; if (!isNum && !['==', '!='].includes(st.cmp)) st.cmp = '=='; }
+      sfx.click(); draw();
+    }));
+    $$('[data-del]', qed).forEach(b => b.addEventListener('click', () => { steps.splice(Number(b.dataset.del), 1); sfx.del(); draw(); }));
+    const ops = $('#ops', stage);
+    ops.innerHTML = lv.ops.map(o => '<button class="opbtn" data-op="' + o + '"' + (terminal() || (afterSelect() && !['First', 'Count'].includes(o)) ? ' disabled' : '') + '>+ .' + o + '(' + (['First', 'Count'].includes(o) ? '' : '…') + ')</button>').join('');
+    $$('[data-op]', ops).forEach(b => b.addEventListener('click', () => addOp(b.dataset.op)));
+    const r = detEval(lv.data, steps), out = $('#qout', stage);
+    if (r.err) out.innerHTML = '<span class="err-x">' + esc(r.err) + '</span>' + (r.ka ? '<span class="note">' + esc(r.ka) + '</span>' : '');
+    else if (Array.isArray(r.v)) {
+      if (r.v.length && typeof r.v[0] === 'object') out.innerHTML = '<span class="note">' + r.v.length + ' ეჭვმიტანილი</span><div class="chips">' + r.v.map(d => '<span class="chip">' + esc(d.Name) + '</span>').join('') + '</div>';
+      else out.innerHTML = '<span class="note">' + r.v.length + ' მნიშვნელობა</span><div class="chips">' + r.v.map(v => '<span class="chip mono">' + esc(lit(v)) + '</span>').join('') + '</div>';
+    } else if (r.v && typeof r.v === 'object') out.innerHTML = '<span class="note">ერთი ობიექტი</span><pre class="code">' + jhl(JSON.stringify(r.v, null, 2)) + '</pre>';
+    else out.innerHTML = '<span class="note">' + (typeof r.v === 'number' ? 'int' : 'string') + '</span><span class="big">' + esc(lit(r.v)) + '</span>';
+    const keep = new Set(((r.objs) || lv.data).map(d => d.Name));
+    const dv = $('#dview', stage);
+    if (view === 'table') {
+      dv.innerHTML = '<div class="tbl-wrap"><table><thead><tr>' + fields.map(f => '<th>' + f + '</th>').join('') + '</tr></thead><tbody>' + lv.data.map(d => '<tr class="' + (steps.length ? (keep.has(d.Name) ? 'in' : 'out') : '') + '">' + fields.map(f => { const v = getF(d, f); return '<td class="' + (typeof v === 'number' ? 'num' : '') + '">' + esc(String(v)) + '</td>'; }).join('') + '</tr>').join('') + '</tbody></table></div>';
+    } else dv.innerHTML = '<pre class="code" style="max-height:340px">' + jhl(JSON.stringify(lv.data, null, 2)) + '</pre>';
+  }
+  function submit(){
+    const r = detEval(lv.data, steps), fb = $('#fb', stage); let ok = false, msg = '';
+    if (r.err) msg = 'query შეცდომას აგდებს. ჯერ ის გაასწორე.';
+    else if (lv.goal.type === 'one') {
+      const one = Array.isArray(r.v) ? (r.v.length === 1 && typeof r.v[0] === 'object' ? r.v[0] : null) : (r.v && typeof r.v === 'object' ? r.v : null);
+      if (one && one.Name === lv.goal.name) ok = true;
+      else if (Array.isArray(r.v) && r.v.length > 1) msg = 'ჯერ კიდევ ' + r.v.length + ' ეჭვმიტანილია. დაამატე კიდევ ერთი ფილტრი ან დალაგება.';
+      else if (Array.isArray(r.v) && !r.v.length) msg = 'არავინ დარჩა: ფილტრი ზედმეტად მკაცრია. შეამოწმე ოპერატორები და მნიშვნელობები.';
+      else if (one) msg = one.Name + ' უდანაშაულოა. გადაამოწმე, ყველა მინიშნებას ითვალისწინებს თუ არა query.';
+      else msg = 'შედეგი ადამიანი უნდა იყოს.';
+    } else {
+      if (r.v === lv.goal.v) ok = true;
+      else if (Array.isArray(r.v)) msg = 'შედეგი ჯერ სიაა. პასუხი ერთი მნიშვნელობა უნდა იყოს: დაამატე `Count()` ან `First()`.';
+      else msg = 'პასუხი არასწორია (' + lit(r.v) + '). წაიკითხე მინიშნებები თავიდან.';
+    }
+    if (ok) {
+      sfx.ok();
+      const st = Math.max(1, 3 - Math.min(2, wrong + (steps.length > lv.opt ? 1 : 0) + (hintShown ? 1 : 0)));
+      fb.className = 'fb show ok'; fb.innerHTML = '<b>საქმე გაიხსნა!</b>';
+      setTimeout(() => win('det', idx, st, lv.learn), 450);
+    } else { wrong++; sfx.bad(); fb.className = 'fb show bad'; fb.innerHTML = '<b>ჯერ არა</b>' + fmt(msg); stage.querySelector('.det').classList.remove('shake'); void stage.offsetWidth; $('#qed', stage).classList.add('shake'); setTimeout(() => $('#qed', stage) && $('#qed', stage).classList.remove('shake'), 400); }
+  }
+  draw();
+}
+
+/* =================== world: robot factory (OOP) =================== */
+const MEM = {
+  name:     {code:'public string Name { get; set; }', kind:'prop', name:'Name', type:'string', acc:'public', set:'public'},
+  nameFld:  {code:'private string name;', kind:'field', name:'name', type:'string', acc:'private'},
+  bat:      {code:'public int Battery { get; set; }', kind:'prop', name:'Battery', type:'int', acc:'public', set:'public'},
+  batStr:   {code:'public string Battery { get; set; }', kind:'prop', name:'Battery', type:'string', acc:'public', set:'public'},
+  batPriv:  {code:'public int Battery { get; private set; }', kind:'prop', name:'Battery', type:'int', acc:'public', set:'private'},
+  ctorOk:   {code:'public {C}(string name)\n{\n    Name = name;\n}', kind:'ctor', name:'ctor', params:'string', sets:'Name'},
+  ctorSelf: {code:'public {C}(string name)\n{\n    name = name;\n}', kind:'ctor', name:'ctor', params:'string', sets:null},
+  ctorVoid: {code:'public void {C}(string name)\n{\n    Name = name;\n}', kind:'method', name:'{C}', params:'string', acc:'public', err:['CS0542', "'{C}': member names cannot be the same as their enclosing type", 'კონსტრუქტორს დასაბრუნებელი ტიპი არ უწერია. `void`-ით ეს ჩვეულებრივი მეთოდია, რომელსაც კლასის სახელი ერქმევა, და ეს აკრძალულია.']},
+  ctorEmpty:{code:'public {C}() { }', kind:'ctor', name:'ctor', params:''},
+  chargeOk: {code:'public void Charge()\n{\n    Battery = 100;\n}', kind:'method', name:'Charge', params:'', acc:'public', tag:'charge'},
+  chargeBad:{code:'public void Charge()\n{\n    battery = 100;\n}', kind:'method', name:'Charge', params:'', acc:'public', err:['CS0103', "The name 'battery' does not exist in the current context", 'C# დიდ და პატარა ასოებს არჩევს: `Battery` და `battery` სხვადასხვა სახელია.']},
+  setBat:   {code:'public void SetBattery(int v)\n{\n    Battery = v;\n}', kind:'method', name:'SetBattery', params:'int', acc:'public', tag:'setbat'},
+  fly:      {code:'public void Fly()\n{\n    /* ფრენა */\n}', kind:'method', name:'Fly', params:'', acc:'public'},
+  flyPriv:  {code:'private void Fly()\n{\n    /* ფრენა */\n}', kind:'method', name:'Fly', params:'', acc:'private'},
+  carry:    {code:'public void Carry(int kg)\n{\n    /* ტვირთის აწევა */\n}', kind:'method', name:'Carry', params:'int', acc:'public'},
+  carryNo:  {code:'public void Carry()\n{\n    /* ტვირთის აწევა */\n}', kind:'method', name:'Carry', params:'', acc:'public'},
+  workV:    {code:'public virtual void Work()\n{\n    /* ზოგადი სამუშაო */\n}', kind:'method', name:'Work', params:'', acc:'public', mod:'virtual'},
+  workP:    {code:'public void Work()\n{\n    /* ზოგადი სამუშაო */\n}', kind:'method', name:'Work', params:'', acc:'public'},
+  weldO:    {code:'public override void Work()\n{\n    /* შედუღება */\n}', kind:'method', name:'Work', params:'', acc:'public', mod:'override', tag:'weld'},
+  weldN:    {code:'public void Work()\n{\n    /* შედუღება */\n}', kind:'method', name:'Work', params:'', acc:'public', tag:'weld'},
+  paintO:   {code:'public override void Work()\n{\n    /* შეღებვა */\n}', kind:'method', name:'Work', params:'', acc:'public', mod:'override', tag:'paint'},
+  paintN:   {code:'public void Work()\n{\n    /* შეღებვა */\n}', kind:'method', name:'Work', params:'', acc:'public', tag:'paint'},
+};
+const IFACES = {IFly:[{name:'Fly', params:''}], ICarry:[{name:'Carry', params:'int'}]};
+const IFACE_SIG = {IFly:'void Fly();', ICarry:'void Carry(int kg);'};
+const FAC_LEVELS = [
+  {title:'პირველი რობოტი', concept:'კლასი და property', opt:2,
+   story:'ქარხანაში პირველი შეკვეთა შემოვიდა: „მჭირდება რობოტი, რომელსაც სახელი და ბატარეის დონე ექნება."',
+   classes:[{name:'Robot', pre:[], pal:['name', 'nameFld', 'bat', 'batStr', 'fly']}],
+   req:[{l:'`Name` — public string property', f:m => hasMem(m, 'Robot', 'name')}, {l:'`Battery` — public int property', f:m => hasMem(m, 'Robot', 'bat')}],
+   hint:'property იწერება ასე: `public ტიპი Name { get; set; }`. ბატარეის დონე რიცხვია.',
+   learn:'კლასი ობიექტის ნახაზია, property კი მისი მონაცემი. `public string Name { get; set; }` ნიშნავს, რომ Name-ის წაკითხვაც და შეცვლაც ყველას შეუძლია. ტიპი მნიშვნელოვანია: ბატარეის დონე რიცხვია (int) და არა ტექსტი.'},
+  {title:'რობოტის ჩართვა', concept:'კონსტრუქტორი', opt:1,
+   story:'„ყოველ ახალ რობოტს შექმნისთანავე უნდა მიეცეს სახელი: `new Robot("R2")`."',
+   classes:[{name:'Robot', pre:['name', 'bat'], pal:['ctorOk', 'ctorSelf', 'ctorVoid', 'ctorEmpty']}],
+   req:[{l:'კონსტრუქტორი, რომელიც `string name`-ს იღებს', f:m => mems(m, 'Robot').some(x => x.kind === 'ctor' && x.params === 'string')}, {l:'კონსტრუქტორი `Name`-ს ავსებს', f:m => mems(m, 'Robot').some(x => x.kind === 'ctor' && x.sets === 'Name')}],
+   hint:'კონსტრუქტორს კლასის სახელი ჰქვია და დასაბრუნებელი ტიპი არ აქვს. დიდი და პატარა `Name`/`name` სხვადასხვაა.',
+   learn:'კონსტრუქტორი `new`-ის დროს ეშვება და ობიექტს საწყის მდგომარეობაში აყენებს. `Name = name` property-ს (დიდი N) ანიჭებს პარამეტრს (პატარა n). `name = name` კი პარამეტრს თავის თავს ანიჭებს და Name ცარიელი რჩება.'},
+  {title:'დაცული ბატარეა', concept:'ენკაფსულაცია', opt:2,
+   story:'„ვიღაცამ ბატარეა 9999-ზე დააყენა და რობოტი გადაიწვა! ბატარეის წაკითხვა ყველას შეეძლოს, მაგრამ შეივსოს მხოლოდ `Charge()`-ით."',
+   classes:[{name:'Robot', pre:['name'], pal:['bat', 'batPriv', 'chargeOk', 'chargeBad', 'setBat']}],
+   req:[{l:'`Battery` იკითხება ყველგან', f:m => mems(m, 'Robot').some(x => x.name === 'Battery' && x.acc === 'public' && x.type === 'int')},
+        {l:'`Battery` გარედან ვერ შეიცვლება', f:m => mems(m, 'Robot').some(x => x.name === 'Battery' && x.set === 'private') && !hasMem(m, 'Robot', 'setBat') && !hasMem(m, 'Robot', 'bat')},
+        {l:'`Charge()` ბატარეას 100-მდე ავსებს', f:m => hasMem(m, 'Robot', 'chargeOk')}],
+   hint:'`{ get; private set; }`: წაკითხვა public-ია, შეცვლა მხოლოდ კლასის შიგნიდან. SetBattery ისევ გახსნიდა კარს.',
+   learn:'ენკაფსულაცია ობიექტის მონაცემს გარე ცვლილებისგან იცავს. `private set` ნიშნავს, რომ Battery-ს მხოლოდ კლასის მეთოდები (Charge) ცვლის, ამიტომ არასწორი მნიშვნელობა გარედან ვერ შემოვა.'},
+  {title:'მფრინავი რობოტი', concept:'მემკვიდრეობა', opt:1,
+   story:'„მჭირდება რობოტი, რომელსაც ჩვეულებრივი რობოტის ყველაფერი აქვს და დამატებით დაფრინავს." Name და Battery თავიდან არ დაწერო, მემკვიდრეობით მიიღე.',
+   classes:[{name:'Robot', pre:['name', 'bat'], pal:['fly']}, {name:'FlyingRobot', bases:['Robot'], pre:[], pal:['fly', 'name']}],
+   req:[{l:'`FlyingRobot : Robot` (მემკვიდრეობა)', f:m => m.FlyingRobot.base === 'Robot'}, {l:'`FlyingRobot`-ს აქვს `Fly()`', f:m => hasMem(m, 'FlyingRobot', 'fly')}, {l:'ჩვეულებრივ `Robot`-ს `Fly()` არ აქვს', f:m => !hasMem(m, 'Robot', 'fly')}],
+   hint:'კლასის თავში აირჩიე საბაზო კლასი Robot. Fly მხოლოდ მფრინავ რობოტს სჭირდება.',
+   learn:'`class FlyingRobot : Robot` ნიშნავს, რომ FlyingRobot არის Robot: იღებს მის ყველა public წევრს (Name, Battery) და ამატებს თავისას (Fly). Name-ის თავიდან დაწერა წინაპრისას მალავს და გაფრთხილებას (CS0108) იწვევს.'},
+  {title:'ტვირთის დრონი', concept:'ინტერფეისი', opt:2,
+   story:'„საწყობს სჭირდება დრონი, რომელიც დაფრინავს და ტვირთს ზიდავს." ინტერფეისი ხელშეკრულებაა: თუ კლასი IFly-ს ირჩევს, Fly() უნდა ჰქონდეს ზუსტად ასე, როგორც ინტერფეისშია.',
+   classes:[{name:'Robot', pre:['name'], pal:[]}, {name:'CargoDrone', bases:['Robot'], ifaces:['IFly', 'ICarry'], pre:[], pal:['fly', 'flyPriv', 'carry', 'carryNo']}],
+   req:[{l:'`CargoDrone : Robot`', f:m => m.CargoDrone.base === 'Robot'}, {l:'ახორციელებს `IFly`-ს', f:m => m.CargoDrone.ifaces.includes('IFly')}, {l:'ახორციელებს `ICarry`-ს', f:m => m.CargoDrone.ifaces.includes('ICarry')}, {l:'კომპილაცია უშეცდომოდ', f:(m, c) => !c.errors.length}],
+   hint:'ინტერფეისის მეთოდი public უნდა იყოს და პარამეტრები ზუსტად უნდა ემთხვეოდეს: `Carry(int kg)`.',
+   learn:'ინტერფეისი ამბობს, რა უნდა შეეძლოს კლასს, მაგრამ არა როგორ. კლასს მხოლოდ ერთი საბაზო კლასი ჰყავს, ინტერფეისი კი შეიძლება ბევრი ჰქონდეს: `class CargoDrone : Robot, IFly, ICarry`.'},
+  {title:'საწარმოო ხაზი', concept:'პოლიმორფიზმი', opt:3,
+   story:'„ხაზზე სხვადასხვა რობოტია. ყველას ერთნაირად ვეუბნებით `robot.Work()`, მაგრამ ყოველმა თავისი საქმე უნდა გააკეთოს."',
+   run:'var robots = new List<Robot> { new Welder(), new Painter() };\nforeach (var r in robots)\n    r.Work();',
+   classes:[{name:'Robot', pre:['name'], pal:['workV', 'workP']}, {name:'Welder', bases:['Robot'], pre:[], pal:['weldO', 'weldN']}, {name:'Painter', bases:['Robot'], pre:[], pal:['paintO', 'paintN']}],
+   req:[{l:'`Robot.Work()` არის `virtual`', f:m => hasMem(m, 'Robot', 'workV')}, {l:'`Welder : Robot` და `override Work()`', f:m => m.Welder.base === 'Robot' && hasMem(m, 'Welder', 'weldO')}, {l:'`Painter : Robot` და `override Work()`', f:m => m.Painter.base === 'Robot' && hasMem(m, 'Painter', 'paintO')}, {l:'კომპილაცია უშეცდომოდ', f:(m, c) => !c.errors.length}],
+   hint:'საბაზო მეთოდი `virtual` უნდა იყოს, შვილებში კი `override`. override-ის გარეშე `List<Robot>`-ში ყველა საბაზო Work()-ს გამოიძახებდა.',
+   learn:'პოლიმორფიზმი ნიშნავს, რომ ერთი და იგივე გამოძახება (`r.Work()`) სხვადასხვა ობიექტზე სხვადასხვანაირად მუშაობს. `virtual` ნებას რთავს გადაფარვას, `override` კი გადაფარავს. ასეა აწყობილი ASP.NET-ის ბევრი ნაწილი.'},
+];
+const memOf = (cls, id) => { const d = MEM[id]; return Object.assign({id}, d, {code:d.code.replaceAll('{C}', cls), name:(d.name || '').replace('{C}', cls)}); };
+const mems = (m, c) => (m[c] ? m[c].members : []).map(id => memOf(c, id));
+const hasMem = (m, c, id) => !!m[c] && m[c].members.includes(id);
+function chainMems(m, c, seen = new Set()){ if (!m[c] || seen.has(c)) return []; seen.add(c); return mems(m, c).concat(m[c].base ? chainMems(m, m[c].base, seen) : []); }
+function compileModel(lv, m){
+  const errors = [], warns = [];
+  for (const c of lv.classes) {
+    const list = mems(m, c.name), cm = m[c.name];
+    for (const x of list) if (x.err) errors.push([x.err[0], x.err[1].replaceAll('{C}', c.name), x.err[2]]);
+    const seen = {};
+    for (const x of list) {
+      const key = x.kind === 'prop' || x.kind === 'field' ? 'v:' + x.name : x.kind + ':' + x.name + '(' + (x.params || '') + ')';
+      if (seen[key]) {
+        if (x.kind === 'ctor') errors.push(['CS0111', "Type '" + c.name + "' already defines a member called '" + c.name + "' with the same parameter types", 'ერთნაირი პარამეტრებით ორი კონსტრუქტორი ვერ იარსებებს.']);
+        else errors.push(['CS0102', "The type '" + c.name + "' already contains a definition for '" + x.name + "'", 'ერთ კლასში ორ წევრს ერთი სახელი ვერ ექნება.']);
+      }
+      seen[key] = 1;
+    }
+    const baseList = cm.base ? chainMems(m, cm.base) : [];
+    for (const x of list) {
+      if (x.mod === 'override') {
+        const bm = baseList.find(b => b.kind === 'method' && b.name === x.name && (b.params || '') === (x.params || ''));
+        if (!bm) errors.push(['CS0115', "'" + c.name + '.' + x.name + "()': no suitable method found to override", cm.base ? 'საბაზო კლასში ასეთი მეთოდი არ არის.' : 'override-ს საბაზო კლასი სჭირდება: ჯერ მემკვიდრეობა აირჩიე.']);
+        else if (bm.mod !== 'virtual' && bm.mod !== 'override') errors.push(['CS0506', "'" + c.name + '.' + x.name + "()': cannot override inherited member '" + cm.base + '.' + x.name + "()' because it is not marked virtual, abstract, or override", 'გადაფარვა მხოლოდ virtual მეთოდზეა შესაძლებელი.']);
+      } else if (cm.base && x.kind !== 'ctor') {
+        const bm = baseList.find(b => b.name === x.name && b.kind === x.kind);
+        if (bm) warns.push(['CS0108', "'" + c.name + '.' + x.name + "' hides inherited member '" + cm.base + '.' + x.name + "'", 'ეს წევრი წინაპრისას მალავს. ' + (x.kind === 'method' ? 'ალბათ override გინდოდა.' : 'მემკვიდრეობით ისედაც გაქვს, თავიდან წერა საჭირო არ არის.')]);
+      }
+    }
+    for (const ifn of cm.ifaces || []) for (const req of IFACES[ifn]) {
+      const all = chainMems(m, c.name).filter(x => x.kind === 'method' && x.name === req.name);
+      const exact = all.find(x => (x.params || '') === req.params);
+      const sig = ifn + '.' + req.name + '(' + req.params + ')';
+      if (!exact) errors.push(['CS0535', "'" + c.name + "' does not implement interface member '" + sig + "'", all.length ? 'მეთოდი არსებობს, მაგრამ პარამეტრები ინტერფეისს არ ემთხვევა.' : 'ინტერფეისის ყველა მეთოდი კლასში უნდა იყოს.']);
+      else if (exact.acc !== 'public') errors.push(['CS0737', "'" + c.name + "' does not implement interface member '" + sig + "'. '" + c.name + '.' + req.name + "' cannot implement an interface member because it is not public", 'ინტერფეისის მეთოდი public უნდა იყოს.']);
+    }
+  }
+  return {errors, warns};
+}
+function codeOf(lv, m){
+  let out = '';
+  const usedIf = [...new Set(lv.classes.flatMap(c => c.ifaces || []))];
+  for (const i of usedIf) out += 'interface ' + i + '\n{\n    ' + IFACE_SIG[i] + '\n}\n\n';
+  for (const c of lv.classes) {
+    const cm = m[c.name], heads = [cm.base, ...cm.ifaces].filter(Boolean);
+    out += 'class ' + c.name + (heads.length ? ' : ' + heads.join(', ') : '') + '\n{\n';
+    const list = mems(m, c.name);
+    out += list.map(x => x.code.split('\n').map(l => '    ' + l).join('\n')).join('\n\n') + (list.length ? '\n' : '');
+    out += '}\n\n';
+  }
+  if (lv.run) out += '// საწარმოო ხაზი\n' + lv.run + '\n';
+  return out.trim();
+}
+const ROBO_COL = {Robot:'#2FA192', FlyingRobot:'#3E93C9', CargoDrone:'#E08A3C', Welder:'#C9922F', Painter:'#C9579A'};
+function robotSVG(m, c){
+  const all = chainMems(m, c), has = (k, n) => all.some(x => x.kind === k && x.name === n);
+  const col = ROBO_COL[c] || '#2FA192', name = all.some(x => x.name === 'Name' && x.kind === 'prop');
+  const bat = all.find(x => x.name === 'Battery' && x.kind === 'prop'), ctor = all.some(x => x.kind === 'ctor' && x.sets === 'Name');
+  const fly = has('method', 'Fly'), carry = all.some(x => x.name === 'Carry'), work = all.find(x => x.name === 'Work' && x.kind === 'method');
+  let s = '<svg viewBox="0 0 120 140">';
+  if (fly) s += '<g class="prop"><rect x="30" y="2" width="60" height="5" rx="2.5" fill="#5A6A6E"/></g><rect x="57" y="6" width="6" height="12" fill="#5A6A6E"/>';
+  else s += '<line x1="60" y1="8" x2="60" y2="20" stroke="#5A6A6E" stroke-width="3"/><circle cx="60" cy="7" r="4" fill="' + (ctor ? '#5FD39A' : '#D3DCD7') + '"/>';
+  s += '<rect x="34" y="18" width="52" height="34" rx="10" fill="' + col + '"/><rect x="41" y="27" width="38" height="14" rx="7" fill="#14232B"/><circle cx="52" cy="34" r="3.5" fill="#A8F5EA"/><circle cx="68" cy="34" r="3.5" fill="#A8F5EA"/>';
+  s += '<rect x="28" y="56" width="64" height="50" rx="12" fill="' + col + '"/>';
+  if (name) s += '<rect x="38" y="62" width="44" height="12" rx="3" fill="#FFFFFF" opacity=".9"/><text x="60" y="71" text-anchor="middle" font-size="8" font-family="JetBrains Mono, monospace" fill="#1D2A2E">' + esc(c.slice(0, 9)) + '</text>';
+  if (bat) { s += '<rect x="42" y="80" width="32" height="14" rx="3" fill="none" stroke="#FFFFFF" stroke-width="2"/><rect x="74" y="84" width="3" height="6" fill="#FFFFFF"/><rect x="45" y="83" width="' + (bat.type === 'int' ? 22 : 8) + '" height="8" fill="' + (bat.type === 'int' ? '#9BEA7A' : '#F07C5A') + '"/>'; if (bat.set === 'private') s += '<g transform="translate(80 79)"><rect x="0" y="5" width="10" height="9" rx="2" fill="#F2D27A"/><path d="M2 5V3a3 3 0 0 1 6 0v2" fill="none" stroke="#F2D27A" stroke-width="1.8"/></g>'; }
+  if (carry) s += '<path d="M92 72h14v18" fill="none" stroke="#5A6A6E" stroke-width="5" stroke-linecap="round"/><path d="M100 92l6 8 6-8" fill="none" stroke="#5A6A6E" stroke-width="4" stroke-linecap="round"/>';
+  if (work && work.tag === 'weld') s += '<path d="M92 74l16-10" stroke="#5A6A6E" stroke-width="5" stroke-linecap="round"/><g class="spark"><circle cx="110" cy="62" r="4" fill="#FFD36A"/><circle cx="114" cy="56" r="2" fill="#FF9A4C"/></g>';
+  else if (work && work.tag === 'paint') s += '<path d="M92 74l14-12" stroke="#8A6A4A" stroke-width="4" stroke-linecap="round"/><rect x="103" y="54" width="10" height="9" rx="2" fill="#C9579A" class="spark"/>';
+  else if (work) s += '<circle cx="100" cy="74" r="7" fill="none" stroke="#5A6A6E" stroke-width="3" stroke-dasharray="3 2" class="prop"/>';
+  s += '<rect x="38" y="108" width="14" height="22" rx="4" fill="#3A4A4E"/><rect x="68" y="108" width="14" height="22" rx="4" fill="#3A4A4E"/>';
+  if (fly) s += '<path d="M28 66l-20 8 20 8z" fill="#BFE3FA"/><path d="M92 66l20 8-20 8z" fill="#BFE3FA" opacity="' + (carry ? 0 : 1) + '"/>';
+  return s + '</svg>';
+}
+function mountFactory(stage, lv, idx){
+  const m = {}; for (const c of lv.classes) m[c.name] = {base:null, ifaces:[], members:c.pre.slice()};
+  let cur = lv.classes[lv.classes.length - 1].name, fails = 0, hintShown = false, compiled = null;
+  stage.innerHTML = '<div class="fac split">'
+    + '<div class="panel"><span class="eyebrow">შეკვეთა #' + (idx + 1) + '</span><p class="story">' + fmt(lv.story) + '</p>'
+    + '<h3>მოთხოვნები</h3><ul class="reqs" id="reqs"></ul>'
+    + (lv.classes.some(c => c.ifaces) ? '<h3>ინტერფეისები</h3><pre class="code">' + hl(Object.keys(IFACE_SIG).map(k => 'interface ' + k + '\n{\n    ' + IFACE_SIG[k] + '\n}').join('\n\n')) + '</pre>' : '')
+    + (lv.run ? '<h3>საწარმოო ხაზის კოდი</h3><pre class="code">' + hl(lv.run) + '</pre>' : '')
+    + '<div class="robots" id="robots"></div></div>'
+    + '<div class="panel"><div class="ctabs" id="ctabs"></div><div class="bp" id="bp"></div><h3>ნაწილები</h3><div class="palette" id="pal"></div>'
+    + '<h3>კომპილატორი</h3><div class="console" id="con"><span class="ka">დააჭირე „აწყობა", რომ კოდი შემოწმდეს.</span></div>'
+    + '<div class="hintbox" id="hint" hidden></div>'
+    + '<div class="row end"><button class="btn sm" id="btn-code">მთელი კოდი</button><button class="btn sm" id="btn-hint">მინიშნება</button><button class="btn primary" id="btn-go">აწყობა და ჩართვა</button></div>'
+    + '<pre class="code" id="full" hidden></pre></div></div>';
+  $('#btn-hint', stage).addEventListener('click', () => { hintShown = true; const h = $('#hint', stage); h.hidden = false; h.innerHTML = fmt(lv.hint); });
+  $('#btn-code', stage).addEventListener('click', () => { const f = $('#full', stage); f.hidden = !f.hidden; draw(); });
+  $('#btn-go', stage).addEventListener('click', build);
+  function draw(){
+    const comp = compileModel(lv, m);
+    $('#reqs', stage).innerHTML = lv.req.map(r => '<li class="' + (r.f(m, comp) ? 'ok' : '') + '"><i></i><span>' + fmt(r.l) + '</span></li>').join('');
+    $('#ctabs', stage).innerHTML = lv.classes.length > 1 ? lv.classes.map(c => '<button class="ctab" data-c="' + c.name + '" aria-pressed="' + (c.name === cur) + '">' + c.name + '</button>').join('') : '';
+    $$('.ctab', stage).forEach(b => b.addEventListener('click', () => { cur = b.dataset.c; sfx.click(); draw(); }));
+    const cdef = lv.classes.find(c => c.name === cur), cm = m[cur];
+    let h = '<div class="hd"><span class="t-kw">class</span> <span class="t-type">' + cur + '</span>';
+    if (cdef.bases) h += ' : <select id="base"><option value="">— არაფერი —</option>' + cdef.bases.map(b => '<option' + (cm.base === b ? ' selected' : '') + '>' + b + '</option>').join('') + '</select>';
+    if (cdef.ifaces) h += cdef.ifaces.map(i => ' <button class="ifc" data-if="' + i + '" aria-pressed="' + cm.ifaces.includes(i) + '">' + (cm.ifaces.includes(i) ? ', ' : '+ ') + i + '</button>').join('');
+    h += '</div><div>{</div>';
+    const list = mems(m, cur);
+    if (!list.length) h += '<div class="empty">// ჯერ ცარიელია: დაამატე ნაწილები ქვემოდან</div>';
+    list.forEach((x, i) => { const pre = cdef.pre.includes(x.id); h += '<div class="mem' + (pre ? ' pre' : '') + '"><span>' + hl(x.code).replace(/\n/g, '<br>') + '</span>' + (pre ? '' : '<button class="x" data-rm="' + i + '" aria-label="ამოღება">×</button>') + '</div>'; });
+    h += '<div>}</div>';
+    $('#bp', stage).innerHTML = h;
+    const bs = $('#base', stage); if (bs) bs.addEventListener('change', () => { cm.base = bs.value || null; sfx.click(); draw(); });
+    $$('[data-if]', stage).forEach(b => b.addEventListener('click', () => { const i = b.dataset.if; cm.ifaces = cm.ifaces.includes(i) ? cm.ifaces.filter(x => x !== i) : cm.ifaces.concat(i); sfx.click(); draw(); }));
+    $$('[data-rm]', stage).forEach(b => b.addEventListener('click', () => { const x = list[Number(b.dataset.rm)]; cm.members.splice(cm.members.indexOf(x.id), 1); sfx.del(); draw(); }));
+    $('#pal', stage).innerHTML = cdef.pal.length ? cdef.pal.map(id => '<button class="part" data-add="' + id + '"' + (cm.members.includes(id) ? ' disabled' : '') + '><span class="plus">+</span><span>' + hl(memOf(cur, id).code) + '</span></button>').join('') : '<p class="note">ამ კლასს ახალი ნაწილი არ სჭირდება. გადადი სხვა კლასზე.</p>';
+    $$('[data-add]', stage).forEach(b => b.addEventListener('click', () => { cm.members.push(b.dataset.add); sfx.add(); draw(); }));
+    $('#robots', stage).innerHTML = lv.classes.map(c => '<div class="rb" data-rb="' + c.name + '"><span class="bub">' + esc(bubble(c.name)) + '</span>' + robotSVG(m, c.name) + '<small>' + c.name + '</small></div>').join('');
+    if (!$('#full', stage).hidden) $('#full', stage).innerHTML = hl(codeOf(lv, m));
+  }
+  function bubble(c){
+    const all = chainMems(m, c), w = all.find(x => x.name === 'Work');
+    if (w) return w.tag === 'weld' ? 'შედუღება 🔥' : w.tag === 'paint' ? 'შეღებვა 🎨' : 'ზოგადი სამუშაო';
+    if (all.some(x => x.name === 'Carry')) return 'დავფრინავ და ვზიდავ!';
+    if (all.some(x => x.name === 'Fly')) return 'დავფრინავ!';
+    if (all.some(x => x.name === 'Charge')) return 'ბატარეა 100%';
+    return 'გამარჯობა!';
+  }
+  function build(){
+    const comp = compileModel(lv, m), con = $('#con', stage), reqOk = lv.req.every(r => r.f(m, comp));
+    let h = '<span>$ dotnet build</span>';
+    comp.errors.forEach(e => { h += '<span class="e">error ' + esc(e[0]) + ': ' + esc(e[1]) + '</span><span class="ka">↳ ' + fmt(e[2]) + '</span>'; });
+    comp.warns.forEach(e => { h += '<span class="w">warning ' + esc(e[0]) + ': ' + esc(e[1]) + '</span><span class="ka">↳ ' + fmt(e[2]) + '</span>'; });
+    if (!comp.errors.length) h += '<span class="o">Build succeeded. ' + comp.warns.length + ' warning(s)</span>';
+    if (!comp.errors.length && !reqOk) h += '<span class="ka">კოდი კომპილირდება, მაგრამ შეკვეთის ყველა მოთხოვნა ჯერ არ სრულდება.</span>';
+    con.innerHTML = h;
+    if (comp.errors.length || !reqOk) { fails++; sfx.bad(); $('#robots', stage).classList.remove('shake'); void stage.offsetWidth; $('#robots', stage).classList.add('shake'); return; }
+    sfx.ok();
+    $$('.rb', stage).forEach((r, i) => setTimeout(() => r.classList.add('live'), i * 350));
+    const extra = lv.classes.reduce((a, c) => a + m[c.name].members.length - c.pre.length, 0) - lv.opt;
+    const st = Math.max(1, 3 - Math.min(2, fails + (extra > 0 ? 1 : 0) + (comp.warns.length ? 1 : 0) + (hintShown ? 1 : 0)));
+    setTimeout(() => win('fac', idx, st, lv.learn), 1500);
+  }
+  draw();
+}
+
+/* =================== world: shop (CRUD + HTTP + JSON) =================== */
+const DB0 = [{id:1, name:'ბურთი', price:25, stock:10}, {id:2, name:'ფეხსაცმელი', price:120, stock:4}, {id:3, name:'ზურგჩანთა', price:60, stock:7}, {id:4, name:'ბოთლი', price:15, stock:0}];
+const B = (o) => JSON.stringify(o, null, 2);
+const SHOP_LEVELS = [
+  {title:'პირველი მომხმარებლები', concept:'GET', story:'შენ ხარ ონლაინ მაღაზიის API. მომხმარებლები გწერენ, შენ კი სწორ HTTP მოთხოვნას აწყობ.',
+   tickets:[
+     {who:'ნინო', text:'გამარჯობა! რა პროდუქტები გაქვთ? მაჩვენეთ ყველა.', m:'GET', id:null},
+     {who:'გიორგი', text:'რა ღირს ზურგჩანთა? მისი id არის 3.', m:'GET', id:3},
+     {who:'ლიკა', text:'ფეხსაცმელი (#2) მარაგშია?', m:'GET', id:2}],
+   hint:'მონაცემის წასაკითხად GET გამოიყენება. ყველა პროდუქტი: `/api/products`, ერთი პროდუქტი: `/api/products/{id}`.',
+   learn:'GET მხოლოდ კითხულობს და ბაზაში არაფერს ცვლის. ერთი რესურსისთვის URL-ში მის id-ს წერ: `GET /api/products/3`. წარმატებული პასუხია `200 OK` და JSON.'},
+  {title:'ახალი საქონელი', concept:'POST + JSON', story:'საწყობში ახალი პროდუქტები შემოვიდა. დაამატე ბაზაში. ყურადღება მიაქციე JSON-ს: ტიპები და სინტაქსი მნიშვნელოვანია.',
+   tickets:[
+     {who:'მენეჯერი', text:'ახალი პროდუქტი: ქუდი, 30 ლარი, 5 ცალი. დაამატე.', m:'POST', id:null, bodies:[
+       {j:B({name:'ქუდი', price:30, stock:5}), ok:true},
+       {j:B({name:'ქუდი', price:'30 ლარი', stock:5}), why:'`price` რიცხვი უნდა იყოს. "30 ლარი" ტექსტია და სერვერი მას decimal-ად ვერ წაიკითხავს.'},
+       {j:B({price:30, stock:5}), why:'`name` აკლია. პროდუქტს სახელი სავალდებულოდ სჭირდება, ამიტომ ვალიდაცია ვერ გაივლის.'}]},
+     {who:'მენეჯერი', text:'კიდევ ერთი: ხელთათმანი, 18 ლარი, 12 ცალი.', m:'POST', id:null, bodies:[
+       {j:'{\n  name: "ხელთათმანი",\n  "price": 18,\n  "stock": 12\n}', why:'JSON-ში გასაღები ყოველთვის ორმაგ ბრჭყალებშია: `"name"`, არა `name`. ასეთ ტექსტს სერვერი ვერ გაპარსავს.'},
+       {j:'{\n  "name": "ხელთათმანი",\n  "price": 18,\n  "stock": 12,\n}', why:'ბოლო ელემენტის შემდეგ მძიმე (trailing comma) JSON-ში დაუშვებელია.'},
+       {j:B({name:'ხელთათმანი', price:18, stock:12}), ok:true}]}],
+   hint:'ახალი ჩანაწერისთვის POST იგზავნება კოლექციაზე (`/api/products`), id-ის გარეშე. id-ს სერვერი ანიჭებს. აირჩიე ის JSON, რომელშიც ტიპებიც და სინტაქსიც სწორია.',
+   learn:'POST ახალ რესურსს ქმნის. მონაცემი body-ში JSON-ად მიდის, სერვერი კი პასუხობს `201 Created` და ახალი ობიექტით, უკვე id-ით. JSON-ში რიცხვი ბრჭყალების გარეშე იწერება, ტექსტი ბრჭყალებით.'},
+  {title:'ფასდაკლება', concept:'PUT', story:'ფასები და მარაგი იცვლება. არსებული პროდუქტი განაახლე.',
+   tickets:[
+     {who:'მენეჯერი', text:'ფეხსაცმელზე (#2) ფასდაკლებაა: ახალი ფასი 99 ლარი.', m:'PUT', id:2, bodies:[
+       {j:B({id:3, name:'ფეხსაცმელი', price:99, stock:4}), why:'body-ში `id` (3) URL-ის id-ს (2) არ ემთხვევა. სერვერი ასეთ მოთხოვნას უარყოფს.'},
+       {j:B({id:2, name:'ფეხსაცმელი', price:99, stock:4}), ok:true},
+       {j:B({price:'99'}), why:'PUT მთლიან ობიექტს ანაცვლებს, ამიტომ ყველა ველი უნდა გაგზავნო. ამასთან `"99"` ტექსტია და არა რიცხვი.'}]},
+     {who:'მენეჯერი', text:'ბოთლი (#4) ისევ მოვიდა: მარაგი 20 გახადე.', m:'PUT', id:4, bodies:[
+       {j:B({id:4, name:'ბოთლი', price:15, stock:'ოცი'}), why:'`stock` მთელი რიცხვია: 20, არა "ოცი".'},
+       {j:B({id:4, name:'ბოთლი', price:15, stock:20}), ok:true},
+       {j:B({id:4, name:'ბოთლი', price:15, stock:20, color:'მწვანე'}), why:'`color` ველი Product-ს არ აქვს. ზოგი API ამას უბრალოდ იგნორირებს, ზოგი 400-ს აბრუნებს. მიჰყევი კონტრაქტს და მხოლოდ ცნობილი ველები გაგზავნე.'}]}],
+   hint:'არსებულის შესაცვლელად PUT იგზავნება კონკრეტულ რესურსზე: `/api/products/2`. body-ში id-ც უნდა ემთხვეოდეს.',
+   learn:'PUT არსებულ რესურსს მთლიანად ანაცვლებს. URL-ში მითითებულია რომელი (id), body-ში კი ახალი სრული მდგომარეობა. პასუხია `200 OK` ან `204 No Content`.'},
+  {title:'გაყიდვიდან მოხსნა', concept:'DELETE + 404', story:'ზოგი პროდუქტი აღარ იყიდება. წაშალე და გაიგე, რას პასუხობს სერვერი, როცა წასაშლელი არ არსებობს.',
+   tickets:[
+     {who:'მენეჯერი', text:'ბოთლი (#4) აღარ გვექნება. წაშალე.', m:'DELETE', id:4},
+     {who:'კლიენტი', status:true, text:'კლიენტმა გამოგზავნა მოთხოვნა, მაგრამ #9 ბაზაში არ არის. რა დააბრუნოს სერვერმა?', line:'DELETE /api/products/9', c:404, why:'`404 Not Found`: მოთხოვნილი რესურსი არ არსებობს, ამიტომ წაშლა ვერ ხერხდება.'},
+     {who:'მენეჯერი', text:'ბურთი (#1) აღარ შემოვა. ესეც წაშალე.', m:'DELETE', id:1}],
+   hint:'წაშლა: `DELETE /api/products/{id}`. body არ სჭირდება.',
+   learn:'DELETE რესურსს შლის. წარმატებისას სერვერი ჩვეულებრივ `204 No Content`-ს აბრუნებს: ყველაფერი კარგადაა, მაგრამ დასაბრუნებელი არაფერია. თუ რესურსი არ არსებობს, `404 Not Found`.'},
+  {title:'სერვერის ენა', concept:'სტატუს კოდები', story:'ახლა შენ ხარ სერვერი. ყოველ სიტუაციაზე აირჩიე სწორი HTTP სტატუს კოდი.',
+   tickets:[
+     {who:'კლიენტი', status:true, text:'პროდუქტი #2 არსებობს და კლიენტი მას ითხოვს.', line:'GET /api/products/2', c:200, why:'`200 OK`: მოთხოვნა შესრულდა და პასუხში მონაცემია.'},
+     {who:'კლიენტი', status:true, text:'ახალი პროდუქტი წარმატებით შეიქმნა.', line:'POST /api/products\n{ "name": "სათვალე", "price": 45, "stock": 3 }', c:201, why:'`201 Created`: ახალი რესურსი შეიქმნა. პასუხში ხშირად Location header-იცაა ახალი მისამართით.'},
+     {who:'კლიენტი', status:true, text:'პროდუქტი წაიშალა. დასაბრუნებელი არაფერია.', line:'DELETE /api/products/3', c:204, why:'`204 No Content`: წარმატებაა, მაგრამ body ცარიელია.'},
+     {who:'კლიენტი', status:true, text:'კლიენტმა ცარიელი სახელი და უარყოფითი ფასი გამოგზავნა.', line:'POST /api/products\n{ "name": "", "price": -5, "stock": 1 }', c:400, why:'`400 Bad Request`: მონაცემი ვალიდაციას ვერ გადის. პრობლემა კლიენტის მხარესაა.'},
+     {who:'კლიენტი', status:true, text:'id 42 ბაზაში არ არის.', line:'GET /api/products/42', c:404, why:'`404 Not Found`: რესურსი არ არსებობს.'}],
+   hint:'2xx წარმატებაა (200 მონაცემით, 201 შექმნა, 204 ცარიელი პასუხი), 4xx კლიენტის შეცდომა (400 არასწორი მონაცემი, 404 ვერ მოიძებნა).',
+   learn:'სტატუს კოდი სერვერის პირველი სიტყვაა. 2xx: წარმატება. 4xx: კლიენტმა რაღაც არასწორად მოითხოვა. 5xx: სერვერს რაღაც დაემართა. ASP.NET-ში ამას `Ok()`, `Created()`, `NoContent()`, `BadRequest()`, `NotFound()` აბრუნებს.'},
+  {title:'პიკის საათი', concept:'სრული CRUD', story:'შაბათია და ბევრი მოთხოვნაა ერთად. გამოიყენე ყველაფერი, რაც ისწავლე.',
+   tickets:[
+     {who:'თამარი', text:'რა გაქვთ ახლა მაღაზიაში?', m:'GET', id:null},
+     {who:'მენეჯერი', text:'ახალი პროდუქტი: სათვალე, 45 ლარი, 3 ცალი.', m:'POST', id:null, bodies:[
+       {j:B({name:'სათვალე', price:45, stock:3}), ok:true},
+       {j:B({id:7, name:'სათვალე', price:45, stock:3}), why:'ახალ პროდუქტს id-ს სერვერი ანიჭებს. კლიენტის მიერ გამოგზავნილი id კონფლიქტს შექმნიდა.'},
+       {j:'{\n  "name": "სათვალე"\n  "price": 45,\n  "stock": 3\n}', why:'"სათვალე"-ს შემდეგ მძიმე აკლია: JSON-ში ელემენტები მძიმით გამოიყოფა.'}]},
+     {who:'მენეჯერი', text:'ზურგჩანთა (#3) ახლა 55 ლარი ღირს.', m:'PUT', id:3, bodies:[
+       {j:B({id:3, name:'ზურგჩანთა', price:55, stock:7}), ok:true},
+       {j:B({id:3, name:'ზურგჩანთა', price:55}), why:'PUT მთლიან ობიექტს ანაცვლებს: stock-ის გარეშე ის 0 გახდებოდა. ყველა ველი გაგზავნე.'},
+       {j:B({id:3, name:'ზურგჩანთა', price:'55₾', stock:7}), why:'`price` რიცხვია, ვალუტის ნიშნის გარეშე.'}]},
+     {who:'მენეჯერი', text:'ფეხსაცმელი (#2) გაყიდვიდან მოხსენი.', m:'DELETE', id:2},
+     {who:'კლიენტი', status:true, text:'კლიენტი ცდილობს #77-ის განახლებას, ასეთი კი არ არსებობს.', line:'PUT /api/products/77\n{ "id": 77, "name": "ქოლგა", "price": 20, "stock": 1 }', c:404, why:'`404 Not Found`: განახლება შეუძლებელია, რადგან რესურსი არ არსებობს.'}],
+   hint:'ყოველ თხოვნაზე ჯერ იფიქრე: კითხვაა (GET), შექმნა (POST), შეცვლა (PUT) თუ წაშლა (DELETE)?',
+   learn:'CRUD = Create, Read, Update, Delete = POST, GET, PUT, DELETE. ყველა REST API, მათ შორის ის, რასაც ASP.NET-ში დაწერ, ამ ოთხ მოქმედებაზეა აგებული.'},
+];
+const AVA = ['#3573BE', '#C9579A', '#23927F', '#B97A1E', '#7F57C2'];
+const METHOD_WHY = {GET:'კლიენტს მხოლოდ ნახვა სურს: GET კითხულობს და ბაზაში არაფერს ცვლის.', POST:'ახალი პროდუქტის დასამატებლად POST გამოიყენება.', PUT:'არსებული პროდუქტის შესაცვლელად PUT გამოიყენება.', DELETE:'წასაშლელად DELETE გამოიყენება.'};
+function mountShop(stage, lv, idx){
+  let db = DB0.map(x => ({...x})), ti = 0, wrong = 0, hintShown = false, method = 'GET', rid = '', body = -1, changed = null, resp = null, nextId = 5;
+  stage.innerHTML = '<div class="shop split">'
+    + '<div class="panel"><span class="eyebrow">მაღაზია · დღე ' + (idx + 1) + '</span><p class="story">' + fmt(lv.story) + '</p><div class="dots" id="dots"></div><div id="tk"></div>'
+    + '<h3>ბაზა · <span class="mono">Products</span></h3><div class="tbl-wrap" id="db"></div></div>'
+    + '<div class="panel" id="ws"></div></div>';
+  function drawLeft(){
+    $('#dots', stage).innerHTML = lv.tickets.map((t, i) => '<i class="' + (i < ti ? 'done' : i === ti ? 'cur' : '') + '"></i>').join('');
+    const t = lv.tickets[ti];
+    $('#tk', stage).innerHTML = t ? '<div class="ticket"><span class="ava" style="background:' + AVA[ti % AVA.length] + '">' + esc(t.who[0]) + '</span><div><b>' + esc(t.who) + '</b><div class="msg">' + fmt(t.text) + '</div></div></div>' : '';
+    $('#db', stage).innerHTML = '<table><thead><tr><th>id</th><th>name</th><th>price</th><th>stock</th></tr></thead><tbody>' + db.map(r => '<tr class="' + (changed === r.id ? 'chg' : '') + '"><td class="num">' + r.id + '</td><td>' + esc(r.name) + '</td><td class="num">' + r.price + '</td><td class="num">' + r.stock + '</td></tr>').join('') + '</tbody></table>';
+  }
+  function drawWs(){
+    const t = lv.tickets[ti], ws = $('#ws', stage);
+    if (!t) return;
+    let h = '';
+    if (t.status) {
+      h += '<h3>შემოსული მოთხოვნა</h3><div class="reqline">' + esc(t.line) + '</div><h3>რას უპასუხებ?</h3><div class="statq">'
+        + [[200, 'OK'], [201, 'Created'], [204, 'No Content'], [400, 'Bad Request'], [404, 'Not Found']].map(([c, n]) => '<button data-st="' + c + '">' + c + '<small>' + n + '</small></button>').join('') + '</div>';
+    } else {
+      h += '<h3>HTTP მოთხოვნა</h3><div class="reqb"><div class="mseg">' + ['GET', 'POST', 'PUT', 'DELETE'].map(x => '<button class="mbtn ' + x + '" data-m="' + x + '" aria-pressed="' + (x === method) + '">' + x + '</button>').join('') + '</div>'
+        + '<div class="url"><span>https://shop.ge</span><b>/api/products</b><select id="rid" aria-label="id"><option value="">(id-ის გარეშე)</option>' + [1, 2, 3, 4, 5, 6, 7, 9].map(i => '<option value="' + i + '"' + (String(i) === rid ? ' selected' : '') + '>/' + i + '</option>').join('') + '</select></div>';
+      if (method === 'POST' || method === 'PUT') {
+        h += '<h3>Body · JSON</h3>' + (t.bodies ? '<div class="bodies">' + t.bodies.map((b, i) => '<button class="bodyc" data-b="' + i + '" aria-pressed="' + (i === body) + '"><span class="bh">ვარიანტი ' + 'ABC'[i] + '</span><pre>' + jhl(b.j) + '</pre></button>').join('') + '</div>' : '<p class="note">ამ თხოვნისთვის მზა body არ გვაქვს.</p>');
+      }
+      h += '</div><div class="row end"><button class="btn sm" id="btn-hint">მინიშნება</button><button class="btn primary" id="btn-send">გაგზავნა</button></div>';
+    }
+    h += '<div class="hintbox" id="hint"' + (hintShown ? '' : ' hidden') + '>' + fmt(lv.hint) + '</div><div class="fb" id="fb"></div>';
+    if (resp) h += '<h3>სერვერის პასუხი</h3><div class="resp"><div class="rh"><span class="st ' + (resp.s < 300 ? 's2' : 's4') + '">' + resp.s + '</span><span>' + esc(resp.n) + '</span>' + (resp.loc ? '<span class="note mono">Location: ' + esc(resp.loc) + '</span>' : '') + '</div>' + (resp.b !== undefined ? '<pre>' + jhl(resp.b) + '</pre>' : '<pre class="note">(body ცარიელია)</pre>') + '</div>';
+    ws.innerHTML = h;
+    $$('[data-m]', ws).forEach(b => b.addEventListener('click', () => { method = b.dataset.m; body = -1; sfx.click(); drawWs(); }));
+    const rs = $('#rid', ws); if (rs) rs.addEventListener('change', () => { rid = rs.value; sfx.click(); });
+    $$('[data-b]', ws).forEach(b => b.addEventListener('click', () => { body = Number(b.dataset.b); sfx.click(); $$('[data-b]', ws).forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
+    const hb = $('#btn-hint', ws); if (hb) hb.addEventListener('click', () => { hintShown = true; $('#hint', ws).hidden = false; });
+    const sb = $('#btn-send', ws); if (sb) sb.addEventListener('click', send);
+    $$('[data-st]', ws).forEach(b => b.addEventListener('click', () => answerStatus(Number(b.dataset.st))));
+    if (t.status && !hintShown) { const h2 = $('#hint', ws); h2.hidden = true; }
+  }
+  function fail(msg){ wrong++; sfx.bad(); const fb = $('#fb', stage); fb.className = 'fb show bad'; fb.innerHTML = '<b>მომხმარებელი უკმაყოფილოა</b>' + fmt(msg); fb.classList.add('shake'); setTimeout(() => fb.classList.remove('shake'), 400); }
+  function okNext(msg){
+    sfx.ok();
+    const fb = $('#fb', stage); fb.className = 'fb show ok'; fb.innerHTML = '<b>შესრულდა!</b>' + fmt(msg || '');
+    setTimeout(() => {
+      ti++; method = 'GET'; rid = ''; body = -1; resp = resp && lv.tickets[ti] ? resp : null;
+      if (ti >= lv.tickets.length) { const st = Math.max(1, 3 - Math.min(2, (wrong >= 3 ? 2 : wrong ? 1 : 0) + (hintShown ? 1 : 0))); win('shop', idx, st, lv.learn); return; }
+      resp = null; changed = null; drawLeft(); drawWs();
+    }, 1300);
+  }
+  function answerStatus(c){
+    const t = lv.tickets[ti];
+    if (c === t.c) { resp = null; okNext(t.why); }
+    else fail('არა ' + c + '. დაფიქრდი: წარმატებაა თუ შეცდომა? თუ წარმატებაა, რამე დაბრუნდება? თუ შეცდომაა, რისი ბრალია: მონაცემის თუ არარსებული რესურსის?');
+  }
+  function send(){
+    const t = lv.tickets[ti], id = rid ? Number(rid) : null;
+    if (method !== t.m) return fail(METHOD_WHY[t.m] + (method === 'GET' && t.m !== 'GET' ? ' GET ბაზაში არაფერს ცვლის.' : ''));
+    if (t.id === null && id !== null) return fail(t.m === 'POST' ? 'ახალ პროდუქტს id ჯერ არ აქვს, მას სერვერი მიანიჭებს: `POST /api/products`.' : 'ყველა პროდუქტის სანახავად id არ გჭირდება: `/api/products`.');
+    if (t.id !== null && id === null) return fail('კონკრეტული პროდუქტისთვის URL-ში id უნდა დაწერო, მაგალითად `/api/products/' + t.id + '`.');
+    if (t.id !== null && id !== t.id) { if (!db.some(r => r.id === id)) { resp = {s:404, n:'Not Found'}; drawWs(); return fail('პროდუქტი #' + id + ' არ არსებობს, ამიტომ სერვერმა 404 დააბრუნა. მომხმარებელს #' + t.id + ' სჭირდება.'); } return fail('ეს სხვა პროდუქტია (#' + id + '). მომხმარებელს #' + t.id + ' სჭირდება.'); }
+    if (t.bodies) {
+      if (body < 0) { resp = {s:400, n:'Bad Request', b:B({error:'Request body is required'})}; drawWs(); return fail('body ცარიელია. აირჩიე JSON, რომელსაც სერვერს გაუგზავნი.'); }
+      const b = t.bodies[body];
+      if (!b.ok) { resp = {s:400, n:'Bad Request', b:B({error:'Validation failed'})}; drawWs(); return fail(b.why); }
+    }
+    const parsed = t.bodies ? JSON.parse(t.bodies[body].j) : null;
+    if (t.m === 'GET') resp = {s:200, n:'OK', b:B(id === null ? db : db.find(r => r.id === id))}, changed = null;
+    else if (t.m === 'POST') { const obj = {id:nextId++, ...parsed}; db.push(obj); changed = obj.id; resp = {s:201, n:'Created', loc:'/api/products/' + obj.id, b:B(obj)}; }
+    else if (t.m === 'PUT') { const i = db.findIndex(r => r.id === id); db[i] = {...parsed}; changed = id; resp = {s:200, n:'OK', b:B(db[i])}; }
+    else if (t.m === 'DELETE') { db = db.filter(r => r.id !== id); changed = null; resp = {s:204, n:'No Content'}; }
+    drawLeft(); drawWs();
+    okNext({GET:'სერვერმა 200 OK და JSON დააბრუნა.', POST:'201 Created: პროდუქტი დაემატა და id მიიღო.', PUT:'200 OK: პროდუქტი განახლდა.', DELETE:'204 No Content: წაიშალა.'}[t.m]);
+  }
+  drawLeft(); drawWs();
+}
+
+/* =================== world: logic maze =================== */
+const MAZE_LEVELS = [
+  {title:'პირველი ნაბიჯები', concept:'ბრძანებების თანმიმდევრობა', grid:['#######', '#S....G', '#######'].map(r => r + '#'), dir:1, blocks:['move'], limit:6, opt:5,
+   story:'რობოტი ბრძანებებს თანმიმდევრობით ასრულებს, ზემოდან ქვემოთ. მიიყვანე ის დროშამდე.',
+   hint:'დაითვალე უჯრები რობოტიდან დროშამდე და იმდენჯერ დაამატე `Move()`.',
+   learn:'პროგრამა ბრძანებების თანმიმდევრობაა: კომპიუტერი ზუსტად იმას აკეთებს, რასაც ეუბნები, და ზუსტად იმ რიგით.'},
+  {title:'მოსახვევი', concept:'მიმართულება', grid:['#######', '#S..###', '###.###', '###.###', '###G###', '#######'], dir:1, blocks:['move', 'left', 'right'], limit:7, opt:6,
+   story:'გზა ქვემოთ უხვევს. `TurnRight()` რობოტს ადგილზე 90°-ით მარჯვნივ აბრუნებს.',
+   hint:'ორჯერ წინ, მარჯვნივ მოხვევა, სამჯერ წინ.',
+   learn:'მოხვევა მდგომარეობას ცვლის (საით იყურება რობოტი), მომდევნო `Move()` კი ამ მდგომარეობის მიხედვით მუშაობს. პროგრამის ნაბიჯები წინა ნაბიჯების შედეგზეა დამოკიდებული.'},
+  {title:'გრძელი დერეფანი', concept:'for ციკლი', grid:['###########', '#S.......G#', '###########'], dir:1, blocks:['move', 'repeat'], limit:3, opt:2,
+   story:'დერეფანი 8 უჯრაა, ბლოკი კი მხოლოდ 3 გაქვს. `for` ციკლი ერთ ბრძანებას ბევრჯერ იმეორებს.',
+   hint:'დაამატე `for`, დააყენე 8 და შიგნით ჩასვი ერთი `Move()`.',
+   learn:'`for (int i = 0; i < 8; i++)` სხეულს 8-ჯერ ასრულებს. ციკლი კოდს მოკლეს და ცვლილებისთვის ადვილს ხდის: 8-ის ნაცვლად 100 რომ დაგჭირდეს, მხოლოდ რიცხვს შეცვლი.'},
+  {title:'კიბე', concept:'ციკლი ბევრი ნაბიჯით', grid:['########', '#S.#####', '##..####', '###..###', '####..##', '#####.G#', '########'], dir:1, blocks:['move', 'left', 'right', 'repeat'], limit:6, opt:5,
+   story:'კიბე ერთი და იგივე ნიმუშით მეორდება. იპოვე ნიმუში და ციკლში ჩასვი.',
+   hint:'ერთი საფეხური: წინ, მარჯვნივ, წინ, მარცხნივ. გაიმეორე 5-ჯერ.',
+   learn:'ციკლის სხეულში რამდენიმე ბრძანება შეიძლება იყოს. პროგრამისტის მთავარი უნარია, ამოცანაში განმეორებადი ნიმუში დაინახო.'},
+  {title:'ბრილიანტები', concept:'ციკლი + მოქმედება', grid:['#########', '#S*.*.*G#', '#########'], dir:1, blocks:['move', 'collect', 'repeat'], limit:5, opt:4,
+   story:'დროშამდე სამივე ბრილიანტი უნდა აიღო. `Collect()` იღებს ბრილიანტს, რომელზეც რობოტი დგას.',
+   hint:'ნიმუში: წინ, აიღე, წინ. გაიმეორე 3-ჯერ.',
+   learn:'ციკლის სხეულში მოძრაობაც შეიძლება იყოს და მოქმედებაც. ერთი იტერაცია ერთი პატარა ამოცანაა, ციკლი კი მას იმეორებს.'},
+  {title:'სპირალი', concept:'while + if', grid:['#######', '#S....#', '#####.#', '#..G#.#', '#.###.#', '#.....#', '#######'], dir:1, blocks:['move', 'right', 'left', 'while', 'if'], limit:5, opt:4,
+   story:'გზა გრძელია და ბევრი მოსახვევი აქვს, ბლოკი კი მხოლოდ 5. დაწერე წესი, რომელიც რობოტს თვითონ მიიყვანს: „სანამ მიზანზე არ ხარ: თუ წინ კედელია, მოუხვიე, თუ არა, წადი."',
+   hint:'`while (!robot.AtGoal)` → შიგნით `if (robot.WallAhead)` → if-ში `TurnRight()`, else-ში `Move()`.',
+   learn:'`while` იმეორებს, სანამ პირობა true-ა, ანუ წინასწარ არ იცი რამდენჯერ. `if/else` გადაწყვეტილებას იღებს. ერთად ისინი ალგორითმს ქმნიან, რომელიც ბევრ სხვადასხვა ლაბირინთზე იმუშავებს.'},
+];
+const BLK = {
+  move:{lbl:'robot.Move();', cls:'a'}, left:{lbl:'robot.TurnLeft();', cls:'t'}, right:{lbl:'robot.TurnRight();', cls:'t'}, collect:{lbl:'robot.Collect();', cls:'c'},
+  repeat:{lbl:'for (…) { }', cls:'l'}, while:{lbl:'while (!AtGoal) { }', cls:'l'}, if:{lbl:'if (…) { } else { }', cls:'l'},
+};
+const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+function mountMaze(stage, lv, idx){
+  let prog = [], sel = {id:null, key:'body'}, nid = 1, fails = 0, hintShown = false, running = false;
+  const grid = lv.grid.map(r => r.split('')), Hn = grid.length, Wn = grid[0].length;
+  let start; grid.forEach((r, y) => r.forEach((c, x) => { if (c === 'S') start = {y, x}; }));
+  const gems0 = []; grid.forEach((r, y) => r.forEach((c, x) => { if (c === '*') gems0.push(y + ',' + x); }));
+  const state = {y:start.y, x:start.x, d:lv.dir, gems:new Set(gems0)};
+  stage.innerHTML = '<div class="maze split">'
+    + '<div class="panel"><span class="eyebrow">ლაბირინთი #' + (idx + 1) + '</span><p class="story">' + fmt(lv.story) + '</p><div class="grid-wrap" id="gw"></div>'
+    + '<div class="fb" id="fb"></div></div>'
+    + '<div class="panel"><div class="row" style="justify-content:space-between"><h3>ბლოკები</h3><span class="counter" id="cnt"></span></div><div class="pal" id="pal"></div>'
+    + '<h3>პროგრამა</h3><div class="prog" id="prog"></div><div class="hintbox" id="hint" hidden></div>'
+    + '<div class="row end"><button class="btn sm" id="btn-hint">მინიშნება</button><button class="btn sm" id="btn-clear">გასუფთავება</button><button class="btn primary" id="btn-run">გაშვება</button></div></div></div>';
+  $('#btn-hint', stage).addEventListener('click', () => { hintShown = true; const h = $('#hint', stage); h.hidden = false; h.innerHTML = fmt(lv.hint); });
+  $('#btn-clear', stage).addEventListener('click', () => { if (running) return; prog = []; sel = {id:null, key:'body'}; sfx.del(); resetBot(); draw(); });
+  $('#btn-run', stage).addEventListener('click', run);
+  const count = list => list.reduce((a, n) => a + 1 + (n.body ? count(n.body) : 0) + (n.els ? count(n.els) : 0), 0);
+  const findNode = (list, id) => { for (const n of list) { if (n.id === id) return n; for (const k of ['body', 'els']) if (n[k]) { const f = findNode(n[k], id); if (f) return f; } } return null; };
+  const parentList = (list, id) => { for (const n of list) { if (n.id === id) return list; for (const k of ['body', 'els']) if (n[k]) { const f = parentList(n[k], id); if (f) return f; } } return null; };
+  const target = () => sel.id === null ? prog : (findNode(prog, sel.id) || {})[sel.key] || prog;
+  function add(t){
+    if (running) return;
+    const n = {id:nid++, t};
+    if (t === 'repeat') { n.n = 3; n.body = []; } if (t === 'while') n.body = []; if (t === 'if') { n.c = 'wall'; n.body = []; n.els = []; }
+    target().push(n);
+    if (n.body) sel = {id:n.id, key:'body'};
+    sfx.add(); draw();
+  }
+  function drawGrid(trail){
+    const cs = 40, wpx = Wn * cs, hpx = Hn * cs;
+    let s = '<svg viewBox="0 0 ' + wpx + ' ' + hpx + '" role="img" aria-label="ლაბირინთი">';
+    grid.forEach((r, y) => r.forEach((c, x) => {
+      const X = x * cs, Y = y * cs;
+      if (c === '#') s += '<rect x="' + X + '" y="' + Y + '" width="' + cs + '" height="' + cs + '" fill="#2A3644"/><rect x="' + (X + 3) + '" y="' + (Y + 3) + '" width="' + (cs - 6) + '" height="' + (cs - 6) + '" rx="5" fill="#34435A"/>';
+      else s += '<rect x="' + X + '" y="' + Y + '" width="' + cs + '" height="' + cs + '" fill="' + ((x + y) % 2 ? '#E9E2F6' : '#F3EEFB') + '"/>';
+      if (c === 'G') s += '<g transform="translate(' + (X + 12) + ' ' + (Y + 6) + ')"><rect x="0" y="0" width="3" height="28" fill="#5A4A70"/><path d="M3 1h16l-4 6 4 6H3z" fill="#E25B4A"/></g>';
+    }));
+    (trail || []).forEach(p => { s += '<circle cx="' + (p.x * cs + cs / 2) + '" cy="' + (p.y * cs + cs / 2) + '" r="3" fill="#B89BE6" opacity=".7"/>'; });
+    state.gems.forEach(k => { const [y, x] = k.split(',').map(Number); s += '<path transform="translate(' + (x * cs + cs / 2) + ' ' + (y * cs + cs / 2) + ')" d="M0 -11L9 -3 0 11 -9 -3z" fill="#3FB6D8" stroke="#BFF0FF" stroke-width="1.5"/>'; });
+    const rx = state.x * cs + cs / 2, ry = state.y * cs + cs / 2, rot = state.d * 90;
+    s += '<g class="robot" style="transform:translate(' + rx + 'px,' + ry + 'px) rotate(' + rot + 'deg)"><circle r="14" fill="#7F57C2"/><circle r="14" fill="none" stroke="#E5D6FF" stroke-width="2"/><path d="M0 -12L6 -2H-6z" fill="#FFE08A"/><circle cx="-5" cy="3" r="2.5" fill="#fff"/><circle cx="5" cy="3" r="2.5" fill="#fff"/></g>';
+    $('#gw', stage).innerHTML = s + '</svg>';
+  }
+  function resetBot(){ state.y = start.y; state.x = start.x; state.d = lv.dir; state.gems = new Set(gems0); drawGrid(); }
+  function lines(list, depth, out, parentId, key){
+    const ind = '&nbsp;'.repeat(depth * 4);
+    for (const n of list) {
+      const ctl = '<span class="ctl"><button data-up="' + n.id + '" aria-label="ზემოთ">↑</button><button data-dn="' + n.id + '" aria-label="ქვემოთ">↓</button><button data-rm="' + n.id + '" aria-label="წაშლა">×</button></span>';
+      if (n.t === 'repeat') {
+        out.push('<div class="ln" data-ln="' + n.id + '">' + ind + '<span class="k">for</span><span class="p">(int i = 0; i &lt; </span><select data-n="' + n.id + '">' + [2, 3, 4, 5, 6, 7, 8, 9].map(v => '<option' + (v === n.n ? ' selected' : '') + '>' + v + '</option>').join('') + '</select><span class="p">; i++)</span>' + ctl + '</div>');
+        out.push('<div class="ln">' + ind + '{</div>'); lines(n.body, depth + 1, out, n.id, 'body'); out.push('<div class="ln">' + ind + '}</div>');
+      } else if (n.t === 'while') {
+        out.push('<div class="ln" data-ln="' + n.id + '">' + ind + '<span class="k">while</span><span class="p"> (!robot.AtGoal)</span>' + ctl + '</div>');
+        out.push('<div class="ln">' + ind + '{</div>'); lines(n.body, depth + 1, out, n.id, 'body'); out.push('<div class="ln">' + ind + '}</div>');
+      } else if (n.t === 'if') {
+        out.push('<div class="ln" data-ln="' + n.id + '">' + ind + '<span class="k">if</span><span class="p"> (robot.</span><select data-c="' + n.id + '"><option value="wall"' + (n.c === 'wall' ? ' selected' : '') + '>WallAhead</option><option value="path"' + (n.c === 'path' ? ' selected' : '') + '>PathAhead</option>' + (lv.blocks.includes('collect') ? '<option value="gem"' + (n.c === 'gem' ? ' selected' : '') + '>GemHere</option>' : '') + '</select><span class="p">)</span>' + ctl + '</div>');
+        out.push('<div class="ln">' + ind + '{</div>'); lines(n.body, depth + 1, out, n.id, 'body'); out.push('<div class="ln">' + ind + '}</div>');
+        out.push('<div class="ln">' + ind + '<span class="k">else</span></div><div class="ln">' + ind + '{</div>'); lines(n.els, depth + 1, out, n.id, 'els'); out.push('<div class="ln">' + ind + '}</div>');
+      } else out.push('<div class="ln" data-ln="' + n.id + '">' + ind + '<span class="m">' + BLK[n.t].lbl + '</span>' + ctl + '</div>');
+    }
+    const isSel = sel.id === parentId && sel.key === key;
+    out.push('<div class="ln">' + ind + '<button class="slot' + (isSel ? ' sel' : '') + '" data-sel="' + (parentId ?? '') + '" data-key="' + key + '">' + (isSel ? '▸ ახალი ბლოკი აქ ჩაჯდება' : '+ აქ ჩასვი') + '</button></div>');
+  }
+  function draw(){
+    const used = count(prog), over = used > lv.limit;
+    $('#cnt', stage).textContent = 'ბლოკები: ' + used + ' / ' + lv.limit; $('#cnt', stage).classList.toggle('over', over);
+    $('#pal', stage).innerHTML = lv.blocks.map(b => '<button class="blk ' + BLK[b].cls + '" data-add="' + b + '">' + esc(BLK[b].lbl) + '</button>').join('');
+    $$('[data-add]', stage).forEach(b => b.addEventListener('click', () => add(b.dataset.add)));
+    const out = []; lines(prog, 0, out, null, 'body');
+    $('#prog', stage).innerHTML = out.join('');
+    const P = $('#prog', stage);
+    $$('[data-sel]', P).forEach(b => b.addEventListener('click', () => { sel = {id:b.dataset.sel === '' ? null : Number(b.dataset.sel), key:b.dataset.key}; sfx.click(); draw(); }));
+    $$('[data-rm]', P).forEach(b => b.addEventListener('click', () => { if (running) return; const id = Number(b.dataset.rm), l = parentList(prog, id); l.splice(l.findIndex(n => n.id === id), 1); if (sel.id === id || !findNode(prog, sel.id ?? -1)) sel = {id:null, key:'body'}; sfx.del(); draw(); }));
+    $$('[data-up]', P).forEach(b => b.addEventListener('click', () => { const id = Number(b.dataset.up), l = parentList(prog, id), i = l.findIndex(n => n.id === id); if (i > 0) { [l[i - 1], l[i]] = [l[i], l[i - 1]]; sfx.click(); draw(); } }));
+    $$('[data-dn]', P).forEach(b => b.addEventListener('click', () => { const id = Number(b.dataset.dn), l = parentList(prog, id), i = l.findIndex(n => n.id === id); if (i < l.length - 1) { [l[i + 1], l[i]] = [l[i], l[i + 1]]; sfx.click(); draw(); } }));
+    $$('[data-n]', P).forEach(s => s.addEventListener('change', () => { findNode(prog, Number(s.dataset.n)).n = Number(s.value); sfx.click(); }));
+    $$('[data-c]', P).forEach(s => s.addEventListener('change', () => { findNode(prog, Number(s.dataset.c)).c = s.value; sfx.click(); }));
+    $('#btn-run', stage).disabled = over || running || !used;
+  }
+  function simulate(){
+    const w = {y:start.y, x:start.x, d:lv.dir, gems:new Set(gems0), steps:[], err:null, win:false, done:false, n:0};
+    const cell = (y, x) => (grid[y] && grid[y][x]) || '#';
+    const ahead = () => { const [dy, dx] = DIRS[w.d]; return cell(w.y + dy, w.x + dx); };
+    const atGoal = () => cell(w.y, w.x) === 'G';
+    const rec = (id, t) => w.steps.push({id, t, y:w.y, x:w.x, d:w.d, gems:new Set(w.gems)});
+    const tick = () => { if (++w.n > 300) { w.err = 'loop'; w.done = true; } };
+    const runList = list => { for (const n of list) { if (w.done) return; exec(n); } };
+    function exec(n){
+      tick(); if (w.done) return;
+      if (n.t === 'move') { if (ahead() === '#') { rec(n.id, 'bump'); w.err = 'wall'; w.done = true; return; } const [dy, dx] = DIRS[w.d]; w.y += dy; w.x += dx; rec(n.id, 'move'); if (atGoal() && !w.gems.size) { w.win = true; w.done = true; } }
+      else if (n.t === 'left') { w.d = (w.d + 3) % 4; rec(n.id, 'turn'); }
+      else if (n.t === 'right') { w.d = (w.d + 1) % 4; rec(n.id, 'turn'); }
+      else if (n.t === 'collect') { const k = w.y + ',' + w.x; if (!w.gems.has(k)) { rec(n.id, 'empty'); w.err = 'empty'; w.done = true; return; } w.gems.delete(k); rec(n.id, 'gem'); }
+      else if (n.t === 'repeat') { for (let i = 0; i < n.n && !w.done; i++) runList(n.body); }
+      else if (n.t === 'while') { let g = 0; while (!atGoal() && !w.done) { if (++g > 200 || !n.body.length) { w.err = 'loop'; w.done = true; return; } runList(n.body); } }
+      else if (n.t === 'if') { const c = n.c === 'wall' ? ahead() === '#' : n.c === 'path' ? ahead() !== '#' : w.gems.has(w.y + ',' + w.x); rec(n.id, 'check'); runList(c ? n.body : n.els); }
+    }
+    runList(prog);
+    if (!w.done && !w.win) w.err = atGoal() ? 'gems' : 'nogoal';
+    return w;
+  }
+  function run(){
+    if (running) return;
+    const res = simulate(); running = true; draw(); resetBot();
+    const fb = $('#fb', stage); fb.className = 'fb';
+    const trail = [];
+    let i = 0;
+    const stepMs = Math.max(80, Math.min(260, Math.round(4200 / Math.max(1, res.steps.length))));
+    const timer = setInterval(() => {
+      $$('.ln.run', stage).forEach(l => l.classList.remove('run'));
+      if (i >= res.steps.length) { clearInterval(timer); running = false; finish(res); return; }
+      const s = res.steps[i++];
+      state.y = s.y; state.x = s.x; state.d = s.d; state.gems = s.gems;
+      if (s.t === 'move') { trail.push({y:s.y, x:s.x}); sfx.step(); }
+      if (s.t === 'gem') sfx.add();
+      drawGrid(trail);
+      const ln = $('[data-ln="' + s.id + '"]', stage); if (ln) ln.classList.add('run');
+    }, stepMs);
+  }
+  function finish(res){
+    draw();
+    const fb = $('#fb', stage);
+    if (res.win) {
+      sfx.ok(); fb.className = 'fb show ok'; fb.innerHTML = '<b>მიზანი მიღწეულია!</b>';
+      const st = Math.max(1, 3 - Math.min(2, fails + (count(prog) > lv.opt ? 1 : 0) + (hintShown ? 1 : 0)));
+      setTimeout(() => win('maze', idx, st, lv.learn), 600); return;
+    }
+    fails++; sfx.bad();
+    const msg = {wall:'რობოტი კედელს შეეჯახა. ნახე, რომელ ბრძანებაზე გაჩერდა.', nogoal:'ბრძანებები დასრულდა, დროშამდე კი ვერ მივიდა.', gems:'დროშამდე მივიდა, მაგრამ ყველა ბრილიანტი არ აუღია.', empty:'`Collect()` ცარიელ უჯრაზე გამოიძახე: აქ ბრილიანტი არ არის.', loop:'უსასრულო ციკლი! პირობა არასდროს გახდა false. შეამოწმე, რობოტი წინ მიიწევს თუ არა ციკლის შიგნით.'}[res.err];
+    fb.className = 'fb show bad'; fb.innerHTML = '<b>ჯერ არა</b>' + fmt(msg);
+    setTimeout(() => { if (!running) resetBot(); }, 1400);
+  }
+  resetBot(); draw();
+}
+
+/* =================== worlds registry =================== */
+const ART = {
+  det:'<svg viewBox="0 0 96 96"><circle cx="40" cy="40" r="22" fill="#FFFDF8" stroke="#B97A1E" stroke-width="7"/><path d="M56 56l22 22" stroke="#B97A1E" stroke-width="9" stroke-linecap="round"/><text x="40" y="46" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#B97A1E">{ }</text></svg>',
+  fac:'<svg viewBox="0 0 96 96"><rect x="26" y="16" width="44" height="30" rx="9" fill="#23927F"/><rect x="33" y="24" width="30" height="12" rx="6" fill="#14232B"/><circle cx="42" cy="30" r="3" fill="#A8F5EA"/><circle cx="54" cy="30" r="3" fill="#A8F5EA"/><rect x="22" y="50" width="52" height="34" rx="10" fill="#23927F"/><rect x="34" y="58" width="28" height="10" rx="3" fill="#fff" opacity=".85"/><line x1="48" y1="6" x2="48" y2="16" stroke="#5A6A6E" stroke-width="3"/><circle cx="48" cy="6" r="4" fill="#5FD39A"/></svg>',
+  shop:'<svg viewBox="0 0 96 96"><path d="M18 34h60l-6 40H24z" fill="#3573BE"/><path d="M34 34v-6a14 14 0 0 1 28 0v6" fill="none" stroke="#3573BE" stroke-width="6"/><text x="48" y="62" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#fff">GET</text></svg>',
+  maze:'<svg viewBox="0 0 96 96"><rect x="10" y="10" width="76" height="76" rx="10" fill="#ECE4F8"/><path d="M22 22h52M22 22v52M38 38h36M38 38v36M54 54h20" stroke="#7F57C2" stroke-width="7" stroke-linecap="round" fill="none"/><circle cx="62" cy="68" r="7" fill="#7F57C2"/></svg>',
+};
+const WORLDS = [
+  {id:'det', cls:'', name:'კოდის დეტექტივი', topics:['LINQ', 'JSON', 'ლოგიკა'], desc:'ამოხსენი საქმეები: ეჭვმიტანილების JSON-ს LINQ-ით ფილტრავ, ალაგებ და ითვლი.', levels:DET_LEVELS, mount:mountDetective, c:'var(--det)', cs:'var(--det-soft)'},
+  {id:'fac', cls:'fac', name:'რობოტების ქარხანა', topics:['OOP', 'კლასები', 'ინტერფეისები'], desc:'ააწყე კლასები შეკვეთების მიხედვით. სწორად აწყობილი რობოტი ცოცხლდება, კომპილატორი კი შეცდომებს გიხსნის.', levels:FAC_LEVELS, mount:mountFactory, c:'var(--fac)', cs:'var(--fac-soft)'},
+  {id:'shop', cls:'shop', name:'ციფრული მაღაზია', topics:['CRUD', 'HTTP', 'JSON'], desc:'იყავი მაღაზიის API: GET, POST, PUT, DELETE, სწორი JSON და სტატუს კოდები.', levels:SHOP_LEVELS, mount:mountShop, c:'var(--shop)', cs:'var(--shop-soft)'},
+  {id:'maze', cls:'maze', name:'ლოგიკის ლაბირინთი', topics:['ალგორითმები', 'ციკლები', 'პირობები'], desc:'დააპროგრამე რობოტი ბლოკებით. ბლოკები შეზღუდულია, ამიტომ ციკლებსა და პირობებს თვითონ აღმოაჩენ.', levels:MAZE_LEVELS, mount:mountMaze, c:'var(--maze)', cs:'var(--maze-soft)'},
+];
+const W = id => WORLDS.find(w => w.id === id);
+
+/* =================== router & screens =================== */
+let view = {s:'hub'};
+function go(v){ view = v; sfx.click(); render(); scrollTo({top:0, behavior:'smooth'}); }
+$('#go-hub').addEventListener('click', () => go({s:'hub'}));
+function drawTop(){
+  const st = totalStars(), max = WORLDS.reduce((a, w) => a + w.levels.length * 3, 0), r = rankOf(st);
+  $('#xp-txt').textContent = st + ' ★ · ' + r.name;
+  $('#xp-bar').style.width = (st / max * 100) + '%';
+  const cr = $('#crumb');
+  if (view.s === 'hub') cr.innerHTML = '';
+  else if (view.s === 'world') cr.innerHTML = '<span>/</span><span>' + esc(W(view.w).name) + '</span>';
+  else cr.innerHTML = '<span>/</span><button id="cr-w">' + esc(W(view.w).name) + '</button><span>/</span><span>დონე ' + (view.i + 1) + '</span>';
+  const cw = $('#cr-w'); if (cw) cw.addEventListener('click', () => go({s:'world', w:view.w}));
+}
+function render(){
+  drawTop();
+  const v = $('#view');
+  if (view.s === 'hub') {
+    const st = totalStars(), r = rankOf(st);
+    v.innerHTML = '<section class="hub"><div class="hero"><div><span class="eyebrow">ისწავლე თამაშით</span><h1>ოთხი სამყარო, ერთი მიზანი: იაზროვნო როგორც პროგრამისტი</h1><p>თითოეული სამყარო ერთ თემას ასწავლის: LINQ და JSON, OOP, CRUD და API, ალგორითმები. გაიარე დონეები თანმიმდევრობით, შეაგროვე ვარსკვლავები და აიმაღლე რანგი.</p></div>'
+      + '<div class="rank"><span class="eyebrow">შენი რანგი</span><b>' + esc(r.name) + '</b><div class="track"><i style="width:' + (r.next ? ((st - r.at) / (r.next[0] - r.at) * 100) : 100) + '%"></i></div><span class="note">' + (r.next ? st + ' ★ · შემდეგი რანგი „' + esc(r.next[1]) + '" ' + r.next[0] + ' ★-ზე' : 'მაქსიმალური რანგი!') + '</span></div></div>'
+      + '<div class="worlds">' + WORLDS.map(w => { const got = w.levels.reduce((a, _, i) => a + starsOf(w.id, i), 0), mx = w.levels.length * 3; return '<button class="world ' + w.cls + '" data-w="' + w.id + '"><span class="art">' + ART[w.id] + '</span><span><h2>' + esc(w.name) + '</h2><span class="tg">' + w.topics.map(t => '<span>' + esc(t) + '</span>').join('') + '</span><p>' + esc(w.desc) + '</p><span class="wprog"><span class="bar"><i style="width:' + (got / mx * 100) + '%"></i></span>' + got + ' / ' + mx + ' ★</span></span></button>'; }).join('') + '</div></section>';
+    $$('[data-w]', v).forEach(b => b.addEventListener('click', () => go({s:'world', w:b.dataset.w})));
+  } else if (view.s === 'world') {
+    const w = W(view.w);
+    v.innerHTML = '<section class="wmap"><div class="whead"><span class="art" style="background:' + w.cs + '">' + ART[w.id] + '</span><div><span class="eyebrow">' + w.topics.join(' · ') + '</span><h1>' + esc(w.name) + '</h1><p class="note">' + esc(w.desc) + '</p></div></div>'
+      + '<div class="levels">' + w.levels.map((l, i) => { const st = starsOf(w.id, i), un = unlocked(w.id, i); return '<button class="lv ' + (st ? 'done' : '') + '" style="--c:' + w.c + ';--cs:' + w.cs + '" data-i="' + i + '"' + (un ? '' : ' disabled') + '><span class="row"><span class="n">' + (i + 1) + '</span>' + (un ? starsHTML(st) : '<span class="note">დაკეტილია</span>') + '</span><b>' + esc(l.title) + '</b><small>' + esc(l.concept) + '</small></button>'; }).join('') + '</div>'
+      + '<div><button class="btn" id="back">← ყველა სამყარო</button></div></section>';
+    $$('[data-i]', v).forEach(b => b.addEventListener('click', () => go({s:'level', w:w.id, i:Number(b.dataset.i)})));
+    $('#back', v).addEventListener('click', () => go({s:'hub'}));
+  } else {
+    const w = W(view.w), lv = w.levels[view.i];
+    v.innerHTML = '<div class="lhead"><button class="btn sm" id="back">←</button><div class="tt"><span class="eyebrow">' + esc(w.name) + ' · დონე ' + (view.i + 1) + ' / ' + w.levels.length + ' · ' + esc(lv.concept) + '</span><h1>' + esc(lv.title) + '</h1></div>' + starsHTML(starsOf(w.id, view.i)) + '</div><div id="stage"></div>';
+    $('#back', v).addEventListener('click', () => go({s:'world', w:w.id}));
+    w.mount($('#stage', v), lv, view.i);
+  }
+}
+function win(wid, i, st, learn){
+  saveStars(wid, i, st); sfx.win(); drawTop();
+  const w = W(wid), hasNext = i + 1 < w.levels.length, m = $('#modal');
+  m.innerHTML = '<div class="mcard" role="dialog" aria-modal="true"><div class="bigstars">' + [0, 1, 2].map(k => STAR.replace('<svg', '<svg class="' + (k < st ? 'on' : '') + '"')).join('') + '</div><h2>' + (st === 3 ? 'იდეალურია!' : st === 2 ? 'კარგია!' : 'გაიარე!') + '</h2>'
+    + '<div class="learned"><b>რა ისწავლე</b>' + fmt(learn) + '</div>'
+    + (st < 3 ? '<p class="note" style="text-align:center">3 ვარსკვლავისთვის: შეცდომის, მინიშნებისა და ზედმეტი ნაბიჯის გარეშე.</p>' : '')
+    + '<div class="row" style="justify-content:center"><button class="btn" id="m-retry">თავიდან</button><button class="btn" id="m-world">სამყაროში</button>' + (hasNext ? '<button class="btn primary" id="m-next">შემდეგი დონე →</button>' : '<button class="btn primary" id="m-hub">სხვა სამყარო →</button>') + '</div></div>';
+  m.hidden = false;
+  const close = () => { m.hidden = true; m.innerHTML = ''; };
+  $('#m-retry', m).addEventListener('click', () => { close(); go({s:'level', w:wid, i}); });
+  $('#m-world', m).addEventListener('click', () => { close(); go({s:'world', w:wid}); });
+  const n = $('#m-next', m); if (n) n.addEventListener('click', () => { close(); go({s:'level', w:wid, i:i + 1}); });
+  const h = $('#m-hub', m); if (h) h.addEventListener('click', () => { close(); go({s:'hub'}); });
+}
+render();
+</script>

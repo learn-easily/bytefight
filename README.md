@@ -11,7 +11,7 @@ Real-time multiplayer quiz battles and learning games for programming (C#, SQL, 
 | `prototypes/duel.html` | First prototype: two-player C# duel (questions, bug hunt, code tasks) |
 | `prototypes/arena.html` | Bytefight Arena: knight vs wizard battle, 4 heroes, attack / heal / shield / critical cards, boss mode, medals |
 | `prototypes/net.js` | Two-player rooms for static hosting (PeerJS), same API as the claude.ai `room` capability |
-| `prototypes/academy.html` | Bytefight Academy: four learning worlds (LINQ + JSON detective, OOP robot factory, CRUD shop, logic maze) |
+| `prototypes/academy.html` | Bytefight Academy: four learning worlds (LINQ + JSON detective with 18 cases and all common LINQ methods, OOP robot factory, CRUD shop, logic maze) |
 
 ## Prototypes
 

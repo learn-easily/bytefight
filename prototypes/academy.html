@@ -148,6 +148,17 @@ tr.chg td{background:var(--ok-soft)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font-size:.82rem;padding:3px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
 .err-x{font-family:var(--f-mono);font-size:.82rem;color:var(--bad)}
+.paper{position:relative;overflow:hidden}
+.stamp{position:absolute;right:14px;bottom:14px;transform:rotate(-12deg) scale(2.4);opacity:0;pointer-events:none;border:3px solid #B5432F;color:#B5432F;border-radius:8px;padding:4px 12px;font-weight:800;letter-spacing:.06em;font-size:.95rem;background:rgba(255,253,248,.85)}
+.paper.solved .stamp{animation:stampin .5s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes stampin{to{opacity:.92;transform:rotate(-12deg) scale(1)}}
+tr.caught td{background:#F6D9D2 !important;opacity:1 !important;font-weight:700;animation:caught 1s ease 2}
+@keyframes caught{50%{background:#EDB3A6}}
+.rtype{font-size:.76rem;color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
+.opbtn.term{border-style:solid}
+dl.ref{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0 0;font-size:.84rem}
+dl.ref dt{font-weight:600} dl.ref dd{margin:0}
+@media (prefers-reduced-motion:reduce){.paper.solved .stamp{animation:none;opacity:.92;transform:rotate(-12deg)} tr.caught td{animation:none}}
 
 /* factory */
 .fac{--c:var(--fac);--cs:var(--fac-soft)}
@@ -358,154 +369,310 @@ const S2 = [
   {Name:'ელენე', Age:31, City:'მცხეთა', Car:'თეთრი', Height:163, Alibi:{Place:'სახლი', Verified:true}},
   {Name:'რატი', Age:26, City:'რუსთავი', Car:'შავი', Height:184, Alibi:{Place:'კაფე', Verified:false}},
 ];
+const S3 = [
+  {Id:1, Cashier:'ნიკა', Item:'ყავა', Price:6, Qty:2, Hour:9, Paid:'ბარათი'},
+  {Id:2, Cashier:'ანა', Item:'ნაყინი', Price:4, Qty:3, Hour:11, Paid:'ნაღდი'},
+  {Id:3, Cashier:'ნიკა', Item:'ტორტი', Price:35, Qty:1, Hour:13, Paid:'ნაღდი'},
+  {Id:4, Cashier:'გიო', Item:'წიგნი', Price:25, Qty:1, Hour:14, Paid:'ბარათი'},
+  {Id:5, Cashier:'ანა', Item:'ყავა', Price:6, Qty:1, Hour:15, Paid:'ნაღდი'},
+  {Id:6, Cashier:'გიო', Item:'ყურსასმენი', Price:90, Qty:1, Hour:16, Paid:'ნაღდი'},
+  {Id:7, Cashier:'ნიკა', Item:'ჩანთა', Price:60, Qty:1, Hour:18, Paid:'ნაღდი'},
+  {Id:8, Cashier:'ანა', Item:'წიგნი', Price:25, Qty:2, Hour:19, Paid:'ბარათი'},
+];
+const SUS = {src:'suspects', ent:'Suspect', key:'Name'}, REC = {src:'receipts', ent:'Receipt', key:'Id'};
 const DET_LEVELS = [
-  {title:'მოპარული ველოსიპედი', concept:'Where', data:S1, ops:['Where'], opt:1, goal:{type:'one', name:'მარი'},
-   story:'პარკიდან ველოსიპედი მოიპარეს. ეჭვმიტანილების სია JSON-ში გვაქვს. გაფილტრე ისე, რომ ერთი ადამიანი დარჩეს.',
+  {...SUS, title:'მოპარული ველოსიპედი', concept:'Where', data:S1, opt:1, goal:{type:'one', key:'მარი'},
+   story:'პარკიდან ველოსიპედი მოიპარეს. ეჭვმიტანილების სია JSON-ში გვაქვს. ქვემოთ ყველა LINQ მეთოდია: შენ უნდა გამოიცნო, რომელი გამოგადგება.',
    clues:['მოწმემ დაინახა, რომ ქურდი თეთრი მანქანით წავიდა.'],
-   hint:'დაამატე `.Where`, აირჩიე ველი `Car`, ოპერატორი `==` და მნიშვნელობა "თეთრი".',
+   hint:'ფილტრი გჭირდება: `.Where(s => s.Car == "თეთრი")`.',
    learn:'`Where` ფილტრავს: ტოვებს მხოლოდ იმ ელემენტებს, რომლებზეც პირობა true-ა. `s => s.Car == "თეთრი"` არის lambda: „ყოველი s-ისთვის შეამოწმე, თეთრია თუ არა მანქანა".'},
-  {title:'ორი მინიშნება', concept:'Where + Where', data:S1, ops:['Where'], opt:2, goal:{type:'one', name:'ლევანი'},
+  {...SUS, title:'ორი მინიშნება', concept:'Where + Where', data:S1, opt:2, goal:{type:'one', key:'ლევანი'},
    story:'ბანკთან ფანჯარა ჩაამტვრიეს. მოწმეებმა ორი რამ დაინახეს.',
    clues:['დამნაშავეს წითელი მანქანა ჰქონდა.', 'ის თბილისში ცხოვრობს.'],
-   hint:'ერთი Where საკმარისი არ არის: ჯერ მანქანით გაფილტრე, მერე ქალაქით.',
-   learn:'LINQ-ის მეთოდები ჯაჭვად ებმის: ყოველი `.Where` წინა შედეგს კიდევ ავიწროებს. იგივეა, რაც ერთი Where-ი `&&`-ით.'},
-  {title:'ყველაზე ახალგაზრდა', concept:'OrderBy + First', data:S1, ops:['Where', 'OrderBy', 'OrderByDescending', 'First'], opt:3, goal:{type:'one', name:'ანა'},
+   hint:'ერთი ფილტრი საკმარისი არ არის: ჯერ მანქანით გაფილტრე, მერე ქალაქით.',
+   learn:'LINQ-ის მეთოდები ჯაჭვად ებმის: ყოველი `.Where` წინა შედეგს კიდევ ავიწროებს. იგივეა, რაც ერთი Where `&&`-ით.'},
+  {...SUS, title:'ყველაზე ახალგაზრდა', concept:'OrderBy + First', data:S1, opt:3, goal:{type:'one', key:'ანა'},
    story:'მუზეუმიდან ნახატი გაქრა. ალიბის მქონეები უდანაშაულოები არიან.',
    clues:['დამნაშავეს ალიბი არ აქვს.', 'კამერაში ჩანს, რომ ეჭვმიტანილებიდან ყველაზე ახალგაზრდაა.'],
-   hint:'გაფილტრე `HasAlibi == false`, დაალაგე `OrderBy(s => s.Age)` და აიღე `First()`.',
-   learn:'`OrderBy` ზრდადობით ალაგებს, `OrderByDescending` კლებადობით. `First()` პირველ ელემენტს იღებს. ცარიელ სიაზე შეცდომას აგდებს, ამიტომ ჯერ დარწმუნდი, რომ ვინმე დარჩა.'},
-  {title:'რამდენი ეჭვმიტანილი?', concept:'Count', data:S1, ops:['Where', 'Count', 'First'], opt:3, goal:{type:'value', v:2},
+   hint:'გაფილტრე `HasAlibi == false`, დაალაგე ასაკით ზრდადობით და აიღე პირველი.',
+   learn:'`OrderBy` ზრდადობით ალაგებს, `OrderByDescending` კლებადობით. `First()` პირველ ელემენტს იღებს. ცარიელ სიაზე შეცდომას აგდებს.'},
+  {...SUS, title:'რამდენი ეჭვმიტანილი?', concept:'Count', data:S1, opt:3, goal:{type:'value', v:2},
    story:'უფროსი ინსპექტორი გეკითხება: რამდენ ადამიანს უნდა დაუძახოთ დაკითხვაზე?',
    clues:['დაკითხვაზე იძახებენ მათ, ვისაც ალიბი არ აქვს.', 'და ვინც 30 წელზე უფროსია.'],
-   hint:'ორი Where, ბოლოს `.Count()`. Count აბრუნებს რიცხვს და არა სიას.',
-   learn:'`Count()` ითვლის, რამდენი ელემენტია შედეგში, და აბრუნებს int-ს. ხშირად გამოიყენება ისეთ კითხვებზე, როგორიცაა „რამდენი მომხმარებელი…", „რამდენი შეკვეთა…".'},
-  {title:'ჩადგმული JSON', concept:'ობიექტი ობიექტში', data:S2, ops:['Where'], opt:3, goal:{type:'one', name:'ბექა'},
+   hint:'ორი ფილტრი, ბოლოს მეთოდი, რომელიც ელემენტებს ითვლის და int-ს აბრუნებს.',
+   learn:'`Count()` ითვლის, რამდენი ელემენტია შედეგში, და აბრუნებს int-ს. მაგალითად: „რამდენი მომხმარებელი…", „რამდენი შეკვეთა…".'},
+  {...SUS, title:'ადვოკატის კითხვა', concept:'Any', data:S1, opt:2, goal:{type:'bool', v:false},
+   story:'ადვოკატი ამბობს: „ქუთაისელებს ალიბი აქვთ, ტყუილად ეჭვობთ". შეამოწმე: არის ქუთაისელებში ერთი მაინც, ვისაც ალიბი არ აქვს?',
+   clues:['მხოლოდ ქუთაისში მცხოვრებნი გვაინტერესებს.', 'პასუხი კი/არა უნდა იყოს: true ან false.'],
+   hint:'გაფილტრე ქალაქით, მერე მეთოდი, რომელიც true-ს აბრუნებს, თუ ერთი ელემენტი მაინც აკმაყოფილებს პირობას: `.Any(s => s.HasAlibi == false)`.',
+   learn:'`Any(პირობა)` აბრუნებს true-ს, თუ ერთი ელემენტი მაინც აკმაყოფილებს პირობას. ამოწმებს და ჩერდება პირველსავე დამთხვევაზე, ამიტომ `Count() > 0`-ზე სწრაფია.'},
+  {...SUS, title:'ყველა წითელი', concept:'All', data:S1, opt:2, goal:{type:'bool', v:true},
+   story:'მოწმე დარწმუნებულია: „წითელი მანქანის ყველა მფლობელი 25 წელზე უფროსია". თუ ასეა, მოწმეს ენდობით.',
+   clues:['მხოლოდ წითელი მანქანის მფლობელებს ამოწმებ.', 'ყველა მათგანი უნდა იყოს 25-ზე უფროსი.'],
+   hint:'გაფილტრე ფერით და გამოიყენე მეთოდი, რომელიც true-ს მხოლოდ მაშინ აბრუნებს, როცა პირობას ყველა აკმაყოფილებს.',
+   learn:'`All(პირობა)` აბრუნებს true-ს, თუ პირობა ყველა ელემენტზე სრულდება. `Any` ეკითხება „ერთი მაინც?", `All` ეკითხება „ყველა?".'},
+  {...SUS, title:'კვალი ფანჯარაზე', concept:'Max', data:S1, opt:2, goal:{type:'value', v:188},
+   story:'ფანჯრის ჩარჩოზე ხელის კვალი ძალიან მაღლაა. ექსპერტს სჭირდება მაქსიმალური სიმაღლე იმათ შორის, ვისაც ალიბი არ აქვს.',
+   clues:['მხოლოდ ალიბის არმქონეები.', 'პასუხი ერთი რიცხვია: ყველაზე დიდი სიმაღლე სმ-ში.'],
+   hint:'ფილტრი და მეთოდი, რომელიც ველის ყველაზე დიდ მნიშვნელობას აბრუნებს: `.Max(s => s.Height)`.',
+   learn:'`Max(s => s.Height)` და `Min(...)` აბრუნებს ველის ყველაზე დიდ ან პატარა მნიშვნელობას, ობიექტს კი არა. ობიექტი რომ გჭირდებოდეს, OrderByDescending + First გამოიყენებდი.'},
+  {...SUS, title:'მეორე უფროსი', concept:'Skip', data:S1, opt:3, goal:{type:'one', key:'გიო'},
+   story:'ყველაზე უფროსი ეჭვმიტანილი მთელი საღამო პოლიციაში იყო. მოწმე ამბობს: „ის მეორე ყველაზე უფროსი იყო".',
+   clues:['დაალაგე ასაკით, უფროსები თავში.', 'პირველი გამოტოვე, შემდეგი აიღე.'],
+   hint:'`.OrderByDescending(s => s.Age).Skip(1).First()`.',
+   learn:'`Skip(n)` პირველ n ელემენტს გამოტოვებს, `Take(n)` მხოლოდ პირველ n-ს იღებს. ერთად ისინი გვერდებად დაყოფას (pagination) აკეთებენ: `Skip(გვერდი * ზომა).Take(ზომა)`.'},
+  {...SUS, title:'რამდენი ქალაქი?', concept:'Select + Distinct', data:S1, opt:4, goal:{type:'value', v:2},
+   story:'ალიბის არმქონე ეჭვმიტანილები სხვადასხვა ქალაქში ცხოვრობენ. რამდენ ქალაქში უნდა გაგზავნოთ ოფიცრები?',
+   clues:['მხოლოდ ალიბის არმქონეები.', 'ერთი ქალაქი ერთხელ ითვლება.'],
+   hint:'ფილტრი → `Select(s => s.City)` → გამეორებების მოშლა → დათვლა.',
+   learn:'`Distinct()` სიიდან გამეორებებს შლის: `["თბილისი","თბილისი","ბათუმი"]` ხდება `["თბილისი","ბათუმი"]`. ხშირად `Select`-ის შემდეგ მოდის, როცა უნიკალური მნიშვნელობები გჭირდება.'},
+  {...SUS, title:'ერთადერთი', concept:'Single', data:S1, opt:3, goal:{type:'one', key:'დათო'}, need:'Single',
+   story:'პროკურორს არ უნდა „პირველი, ვინც მოხვდა". სასამართლოში უნდა დაამტკიცო, რომ პირობას ზუსტად ერთი ადამიანი აკმაყოფილებს. თუ ორი აღმოჩნდება, query შეცდომით უნდა გაჩერდეს.',
+   clues:['ქუთაისში ცხოვრობს.', 'წითელი მანქანა ჰყავს.', 'ბოლოს ის მეთოდი, რომელიც ზუსტად ერთს ითხოვს.'],
+   hint:'`First()` აქ არ გამოდგება: გჭირდება `Single()`, რომელიც შეცდომას აგდებს, თუ 0 ან 1-ზე მეტი ელემენტია.',
+   learn:'`Single()` ამოწმებს, რომ ზუსტად ერთი ელემენტია. ორზე: „Sequence contains more than one element". გამოიყენე, როცა ერთზე მეტი შედეგი ბაგს ნიშნავს, მაგალითად Id-ით ძებნისას.'},
+  {...SUS, title:'ჩადგმული JSON', concept:'ობიექტი ობიექტში', data:S2, opt:3, goal:{type:'one', key:'ბექა'},
    story:'ახალ საქმეში ყოველ ეჭვმიტანილს აქვს Alibi ობიექტი: სად იყო (Place) და დადასტურდა თუ არა (Verified). გახსენი JSON ხედი და ნახე სტრუქტურა.',
    clues:['ალიბი არ დადასტურდა.', 'შავი მანქანა ჰყავს.', 'ამბობს, რომ სახლში იყო.'],
    hint:'ჩადგმულ ველს წერტილით მიმართავ: `s.Alibi.Verified`, `s.Alibi.Place`.',
    learn:'JSON-ში ობიექტი შეიძლება სხვა ობიექტს შეიცავდეს: `"Alibi": { "Place": "სახლი", "Verified": false }`. C#-ში ეს ჩადგმული კლასია და წერტილით მიმართავ: `s.Alibi.Place`.'},
-  {title:'ბოლო საქმე: მანქანის ფერი', concept:'Select', data:S2, ops:['Where', 'OrderBy', 'OrderByDescending', 'Select', 'First', 'Count'], opt:5, goal:{type:'value', v:'შავი'},
+  {...SUS, title:'მანქანის ფერი', concept:'Select', data:S2, opt:5, goal:{type:'value', v:'შავი'},
    story:'პოლიციას ეჭვმიტანილი კი არა, მისი მანქანის ფერი სჭირდება საგზაო კამერებისთვის.',
    clues:['ალიბი არ დადასტურდა.', 'რუსთავში ცხოვრობს.', 'ეჭვმიტანილებიდან ყველაზე მაღალია.', 'პასუხად მხოლოდ მანქანის ფერი გამოიტანე.'],
-   hint:'გაფილტრე, დაალაგე `OrderByDescending(s => s.Height)`, მერე `Select(s => s.Car)` და `First()`.',
-   learn:'`Select` ყოველ ელემენტს სხვა ფორმაში გადაიყვანს: `Select(s => s.Car)` ადამიანების სიიდან მანქანების ფერების სიას აკეთებს. ასე API-ში მხოლოდ საჭირო ველებს აბრუნებ.'},
+   hint:'გაფილტრე, დაალაგე სიმაღლით კლებადობით, მერე `Select(s => s.Car)` და `First()`.',
+   learn:'`Select` ყოველ ელემენტს სხვა ფორმაში გადაიყვანს: `Select(s => s.Car)` ადამიანების სიიდან ფერების სიას აკეთებს. ასე API-ში მხოლოდ საჭირო ველებს აბრუნებ.'},
+  {...SUS, title:'დაკითხვის რიგი', concept:'ThenBy', data:S2, opt:4, goal:{type:'one', key:'ზურა'}, need:'ThenBy',
+   story:'ინსპექტორი ალიბის დაუდასტურებლებს ასე იძახებს: ჯერ ქალაქის მიხედვით (ანბანით), ერთ ქალაქში კი უმცროსიდან უფროსისკენ. ვინ შევა პირველი?',
+   clues:['ალიბი არ დადასტურდა.', 'პირველი დალაგება: City.', 'ერთნაირ ქალაქში მეორე დალაგება: Age.'],
+   hint:'`OrderBy(s => s.City)` და მის შემდეგ `ThenBy(s => s.Age)`. ორი OrderBy ზედიზედ პირველ დალაგებას გადაშლის.',
+   learn:'`ThenBy` მეორე დალაგებაა: მუშაობს მხოლოდ `OrderBy`-ის შემდეგ და ალაგებს მათ, ვინც პირველი გასაღებით თანაბარია. მეორე `OrderBy` წინა დალაგებას უბრალოდ ჩაანაცვლებდა.'},
+  {...SUS, title:'მცხეთის ძიება', concept:'FirstOrDefault', data:S2, opt:3, goal:{type:'null'},
+   story:'ღამის ცვლის პროგრამა ყოველ ქალაქში ეძებს ალიბის დაუდასტურებელ ეჭვმიტანილს. მცხეთაზე პროგრამა ყოველ ღამე ვარდება. გამართე query, რომ არაფრის პოვნისას არ ჩავარდეს.',
+   clues:['ქალაქი: მცხეთა.', 'ალიბი არ დადასტურდა.', 'თუ ასეთი არავინაა, შედეგი null უნდა იყოს და არა შეცდომა.'],
+   hint:'`First()` ცარიელ სიაზე exception-ს აგდებს. გამოიყენე `FirstOrDefault()`: ის ასეთ დროს null-ს აბრუნებს.',
+   learn:'`FirstOrDefault()` აბრუნებს პირველს ან, თუ სია ცარიელია, ტიპის default მნიშვნელობას: ობიექტისთვის null, int-ისთვის 0. მერე ამოწმებ: `if (s is null) …`.'},
+  {...REC, title:'ნაკლული სალარო', concept:'Sum', data:S3, opt:3, goal:{type:'value', v:95},
+   story:'მაღაზიის სალაროში ფული აკლია. ახალი მონაცემები: ჩეკები (receipts). გამოთვალე, რამდენი ლარი მიიღო ნიკამ ნაღდით.',
+   clues:['მოლარე: ნიკა.', 'გადახდა: ნაღდი.', 'პასუხი: ფასების ჯამი.'],
+   hint:'ორი ფილტრი და `Sum(r => r.Price)`.',
+   learn:'`Sum(r => r.Price)` ველის მნიშვნელობებს აჯამებს. ცარიელ სიაზე აბრუნებს 0-ს (`Max`/`Average` კი შეცდომას აგდებს).'},
+  {...REC, title:'საშუალო ჩეკი', concept:'Average', data:S3, opt:3, goal:{type:'value', v:5},
+   story:'ანა ამბობს, რომ ნაღდით მხოლოდ იაფ ნივთებს ყიდდა. შეამოწმე: რა არის მისი ნაღდი ჩეკების საშუალო ფასი?',
+   clues:['მოლარე: ანა.', 'გადახდა: ნაღდი.', 'პასუხი: საშუალო ფასი.'],
+   hint:'ორი ფილტრი და `Average(r => r.Price)`. შედეგის ტიპი double-ია.',
+   learn:'`Average` აბრუნებს double-ს, მაშინაც კი, როცა ველი int-ია: (4 + 6) / 2 = 5.0. ცარიელ სიაზე exception-ს აგდებს.'},
+  {...REC, title:'ბოლო ჩეკი', concept:'Last', data:S3, opt:3, goal:{type:'one', key:7},
+   story:'კამერამ დღის ბოლოს დააფიქსირა ნაღდი გადახდა, რომელიც სალაროში არ ჩანს. იპოვე დღის ბოლო ნაღდი ჩეკი.',
+   clues:['გადახდა: ნაღდი.', 'საათის მიხედვით ყველაზე გვიანდელი.'],
+   hint:'გაფილტრე, დაალაგე `Hour`-ით და აიღე ბოლო: `.Last()`.',
+   learn:'`Last()` ბოლო ელემენტს იღებს (ცარიელზე შეცდომა). ხშირად იგივე შედეგს იძლევა `OrderByDescending(...).First()`; მონაცემთა ბაზაში ეს მეორე ვარიანტი უფრო სანდოა.'},
+  {...REC, title:'დიდი ძარცვა', concept:'Take', data:S3, opt:3, goal:{type:'list', v:['ყურსასმენი', 'ჩანთა', 'ტორტი']},
+   story:'ბოლო საქმე. ქურდმა სამი ყველაზე ძვირი ნივთი წაიღო. სადაზღვევო კომპანიას სჭირდება მათი სახელების სია, ძვირიდან იაფისკენ.',
+   clues:['დაალაგე ფასით, ძვირი თავში.', 'აიღე მხოლოდ სამი.', 'გამოიტანე ნივთის სახელი (Item).'],
+   hint:'`OrderByDescending(r => r.Price).Take(3).Select(r => r.Item)`.',
+   learn:'`Take(3)` პირველ სამს იღებს და სიას აბრუნებს (First კი ერთ ელემენტს). „ტოპ N" ყოველთვის ასეა: დალაგება → Take. გილოცავ, ყველა საქმე გახსენი, დეტექტივო!'},
 ];
+const OPS = ['Where', 'Select', 'OrderBy', 'OrderByDescending', 'ThenBy', 'ThenByDescending', 'Distinct', 'Take', 'Skip', 'First', 'FirstOrDefault', 'Last', 'Single', 'Count', 'Any', 'All', 'Sum', 'Min', 'Max', 'Average'];
+const OPINFO = {
+  Where:'ტოვებს მხოლოდ პირობის დამაკმაყოფილებელ ელემენტებს', Select:'ყოველ ელემენტს გარდაქმნის, მაგალითად ერთ ველს იღებს',
+  OrderBy:'ალაგებს ზრდადობით', OrderByDescending:'ალაგებს კლებადობით', ThenBy:'მეორე დალაგება ზრდადობით (მხოლოდ OrderBy-ის შემდეგ)', ThenByDescending:'მეორე დალაგება კლებადობით',
+  Distinct:'შლის გამეორებებს', Take:'იღებს პირველ n ელემენტს', Skip:'გამოტოვებს პირველ n ელემენტს',
+  First:'პირველი ელემენტი; ცარიელზე exception', FirstOrDefault:'პირველი ელემენტი ან null', Last:'ბოლო ელემენტი; ცარიელზე exception', Single:'ზუსტად ერთი ელემენტი; სხვა შემთხვევაში exception',
+  Count:'ელემენტების რაოდენობა (int)', Any:'true, თუ ერთი მაინც აკმაყოფილებს პირობას', All:'true, თუ ყველა აკმაყოფილებს პირობას',
+  Sum:'ველის ჯამი', Min:'ველის უმცირესი მნიშვნელობა', Max:'ველის უდიდესი მნიშვნელობა', Average:'ველის საშუალო (double)'};
+const PRED = ['Where', 'Any', 'All'], KEYSEL = ['OrderBy', 'OrderByDescending', 'ThenBy', 'ThenByDescending', 'Select'], AGG = ['Sum', 'Min', 'Max', 'Average'], NUMARG = ['Take', 'Skip'];
+const TERM = ['First', 'FirstOrDefault', 'Last', 'Single', 'Count', 'Any', 'All', 'Sum', 'Min', 'Max', 'Average'];
 const getF = (o, path) => path.split('.').reduce((a, k) => a == null ? a : a[k], o);
 function fieldsOf(data){ const out = []; const walk = (o, pre) => { for (const [k, v] of Object.entries(o)) { if (v && typeof v === 'object') walk(v, pre + k + '.'); else out.push(pre + k); } }; walk(data[0], ''); return out; }
 function valuesOf(data, f){
   const vals = [...new Set(data.map(d => getF(d, f)))];
   if (typeof vals[0] === 'number') {
-    const extra = f === 'Age' ? [25, 30, 35, 40] : f === 'Height' ? [170, 175, 180, 185] : [];
+    const extra = f === 'Age' ? [25, 30, 35, 40] : f === 'Height' ? [170, 175, 180, 185] : f === 'Price' ? [10, 20, 50] : f === 'Hour' ? [12, 15, 18] : [];
     return [...new Set(vals.concat(extra))].sort((a, b) => a - b);
   }
   if (typeof vals[0] === 'boolean') return [true, false];
   return vals.sort();
 }
-const lit = v => typeof v === 'string' ? '"' + v + '"' : String(v);
-function detEval(data, steps){
-  let cur = data.slice(), objs = data.slice();
+const lit = v => v === null ? 'null' : typeof v === 'string' ? '"' + v + '"' : typeof v === 'number' && !Number.isInteger(v) ? String(Math.round(v * 100) / 100) : String(v);
+const cmpOk = (a, op, b) => { switch (op) { case '==': return a === b; case '!=': return a !== b; case '>': return a > b; case '<': return a < b; case '>=': return a >= b; case '<=': return a <= b; } return false; };
+const ordCmp = (x, y, keys, elemObj) => { for (const k of keys) { const a = elemObj ? getF(x, k.f) : x, b = elemObj ? getF(y, k.f) : y; if (a !== b) return (a > b ? 1 : -1) * k.d; } return 0; };
+const NOELEM = {err:'InvalidOperationException: Sequence contains no elements'};
+function detEval(lv, steps){
+  const fields = fieldsOf(lv.data), numF = fields.filter(f => typeof getF(lv.data[0], f) === 'number');
+  let cur = lv.data.slice(), objs = cur, kind = 'seq', elem = 'obj', ordered = false, keys = [], base = null, vt = '';
+  const at = [];
   for (const st of steps) {
-    if (!Array.isArray(cur)) return {err:'First() და Count() ჯაჭვს ასრულებს: მათ შემდეგ სხვა მეთოდს ვეღარ დაამატებ.'};
-    if (st.op === 'Where') {
-      cur = cur.filter(d => { const a = getF(d, st.f), b = st.v; switch (st.cmp) { case '==': return a === b; case '!=': return a !== b; case '>': return a > b; case '<': return a < b; case '>=': return a >= b; case '<=': return a <= b; } return false; });
-      objs = cur;
-    } else if (st.op === 'OrderBy' || st.op === 'OrderByDescending') {
-      const k = st.op === 'OrderBy' ? 1 : -1;
-      cur = cur.slice().sort((x, y) => { const a = getF(x, st.f), b = getF(y, st.f); return (a > b ? 1 : a < b ? -1 : 0) * k; });
-      objs = cur;
-    } else if (st.op === 'Select') { objs = cur; cur = cur.map(d => getF(d, st.f)); }
-    else if (st.op === 'First') { if (!cur.length) return {err:'InvalidOperationException: Sequence contains no elements', ka:'First() ცარიელ სიაზე შეცდომას აგდებს: ფილტრის შემდეგ არავინ დარჩა.'}; const first = cur[0]; if (typeof first === 'object') objs = [first]; cur = first; }
-    else if (st.op === 'Count') { cur = cur.length; }
+    at.push({kind, elem, ordered, vt});
+    if (kind !== 'seq') return {err:'.' + st.op + '(): ' + steps[at.length - 2].op + '() ჯაჭვს ასრულებს. მის შემდეგ სხვა მეთოდს ვეღარ დაამატებ.', at};
+    const isObj = elem === 'obj';
+    if ((PRED.includes(st.op) || KEYSEL.includes(st.op)) && !isObj) return {err:'.' + st.op + '(): Select-ის შემდეგ ელემენტები უკვე ' + vt + ' მნიშვნელობებია და s.Field აღარ არსებობს.', at};
+    if (PRED.includes(st.op) && !st.f) { st.f = fields.find(f => f !== lv.key) || fields[0]; st.cmp = '=='; st.v = valuesOf(lv.data, st.f)[0]; }
+    const pred = d => cmpOk(getF(d, st.f), st.cmp, st.v);
+    const prevOrdered = ordered; ordered = false;
+    switch (st.op) {
+      case 'Where': cur = cur.filter(pred); objs = cur; break;
+      case 'OrderBy': case 'OrderByDescending':
+        base = cur.slice(); keys = [{f:st.f, d:st.op === 'OrderBy' ? 1 : -1}]; cur = base.slice().sort((x, y) => ordCmp(x, y, keys, true)); objs = cur; ordered = true; break;
+      case 'ThenBy': case 'ThenByDescending':
+        if (!prevOrdered) return {err:'CS1061: ' + st.op + ' მხოლოდ OrderBy / OrderByDescending-ის შემდეგ არსებობს (IOrderedEnumerable-ზე).', at};
+        keys = keys.concat({f:st.f, d:st.op === 'ThenBy' ? 1 : -1}); cur = base.slice().sort((x, y) => ordCmp(x, y, keys, true)); objs = cur; ordered = true; break;
+      case 'Select': cur = cur.map(d => getF(d, st.f)); elem = 'val'; vt = typeof getF(lv.data[0], st.f) === 'number' ? 'int' : typeof getF(lv.data[0], st.f) === 'boolean' ? 'bool' : 'string'; break;
+      case 'Distinct': cur = isObj ? cur.slice() : [...new Set(cur)]; if (isObj) objs = cur; break;
+      case 'Take': cur = cur.slice(0, st.n || 1); if (isObj) objs = cur; break;
+      case 'Skip': cur = cur.slice(st.n || 1); if (isObj) objs = cur; break;
+      case 'First': if (!cur.length) return {...NOELEM, ka:'First() ცარიელ სიაზე შეცდომას აგდებს: ფილტრის შემდეგ არავინ დარჩა.', at}; cur = cur[0]; kind = 'one'; break;
+      case 'FirstOrDefault': cur = cur.length ? cur[0] : null; kind = 'one'; break;
+      case 'Last': if (!cur.length) return {...NOELEM, ka:'Last() ცარიელ სიაზე შეცდომას აგდებს.', at}; cur = cur[cur.length - 1]; kind = 'one'; break;
+      case 'Single':
+        if (!cur.length) return {...NOELEM, ka:'Single(): არავინ დარჩა.', at};
+        if (cur.length > 1) return {err:'InvalidOperationException: Sequence contains more than one element', ka:'Single() ზუსტად ერთს ითხოვს, აქ კი ' + cur.length + ' ელემენტია.', at};
+        cur = cur[0]; kind = 'one'; break;
+      case 'Count': cur = cur.length; kind = 'scalar'; vt = 'int'; break;
+      case 'Any': cur = cur.some(pred); kind = 'scalar'; vt = 'bool'; break;
+      case 'All': cur = cur.every(pred); kind = 'scalar'; vt = 'bool'; break;
+      default: { // Sum Min Max Average
+        if (isObj && !numF.includes(st.f)) st.f = numF[0];
+        const xs = isObj ? cur.map(d => getF(d, st.f)) : cur;
+        if ((st.op === 'Sum' || st.op === 'Average') && xs.some(x => typeof x !== 'number')) return {err:'CS1929: ' + st.op + ' მხოლოდ რიცხვებზე მუშაობს.', at};
+        if (st.op !== 'Sum' && !xs.length) return {...NOELEM, ka:st.op + '() ცარიელ სიაზე შეცდომას აგდებს.', at};
+        cur = st.op === 'Sum' ? xs.reduce((a, b) => a + b, 0) : st.op === 'Average' ? xs.reduce((a, b) => a + b, 0) / xs.length
+          : xs.reduce((a, b) => (st.op === 'Min' ? b < a : b > a) ? b : a);
+        kind = 'scalar'; vt = st.op === 'Average' ? 'double' : typeof cur === 'number' ? 'int' : 'string';
+      }
+    }
   }
-  return {v:cur, objs};
+  if (kind === 'one' && cur && typeof cur === 'object') objs = [cur];
+  if (kind === 'one' && cur === null) objs = [];
+  const type = kind === 'seq' ? (ordered ? 'IOrderedEnumerable<' : 'IEnumerable<') + (elem === 'obj' ? lv.ent : vt) + '>'
+    : kind === 'one' ? (cur === null ? lv.ent + '?' : typeof cur === 'object' ? lv.ent : vt) : vt;
+  return {v:cur, objs, kind, elem, ordered, type, at, next:{kind, elem, ordered, vt}};
 }
+const rowLabel = (lv, d) => lv.key === 'Name' ? d.Name : '#' + d.Id + ' ' + d.Item;
 function mountDetective(stage, lv, idx){
-  let steps = [], wrong = 0, view = 'table', hintShown = false;
-  const fields = fieldsOf(lv.data);
-  const terminal = () => steps.length && (steps[steps.length - 1].op === 'First' || steps[steps.length - 1].op === 'Count');
-  const afterSelect = () => steps.some(s => s.op === 'Select');
+  let steps = [], wrong = 0, view = 'table', hintShown = false, solved = false;
+  const fields = fieldsOf(lv.data), numF = fields.filter(f => typeof getF(lv.data[0], f) === 'number' && f !== lv.key).concat(fields.filter(f => f === lv.key && typeof getF(lv.data[0], f) === 'number'));
+  const g = lv.goal.type;
+  const goalTxt = {one:'შედეგში მხოლოდ დამნაშავე უნდა დარჩეს.', value:'შედეგი ერთი მნიშვნელობა უნდა იყოს.', bool:'პასუხი true ან false უნდა იყოს.',
+    null:'შედეგი ერთი ' + lv.ent + ' ან „არავინ" უნდა იყოს და query შეცდომას არ უნდა აგდებდეს.', list:'შედეგი სწორი თანმიმდევრობით დალაგებული სია უნდა იყოს.'}[g];
   stage.innerHTML = '<div class="det split">'
-    + '<div class="panel"><div class="paper"><span class="eyebrow">საქმე #' + (idx + 1) + '</span><p class="story">' + fmt(lv.story) + '</p><ul class="clues">' + lv.clues.map(c => '<li>' + fmt(c) + '</li>').join('') + '</ul></div>'
-    + '<div class="goal">' + '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span><b>მიზანი</b>' + (lv.goal.type === 'one' ? 'შედეგში მხოლოდ დამნაშავე უნდა დარჩეს.' : 'შედეგი ერთი მნიშვნელობა უნდა იყოს.') + '</span></div>'
-    + '<div class="row" style="justify-content:space-between"><h3>ეჭვმიტანილები · <span class="mono">suspects</span></h3><div class="seg"><button data-v="table" aria-pressed="true">ცხრილი</button><button data-v="json" aria-pressed="false">JSON</button></div></div><div id="dview"></div></div>'
-    + '<div class="panel"><h3>შენი LINQ query</h3><div class="qed" id="qed"></div><div class="row" id="ops"></div>'
-    + '<h3>შედეგი</h3><div class="qres" id="qout"></div>'
+    + '<div class="panel"><div class="paper"><span class="eyebrow">საქმე #' + (idx + 1) + ' / ' + DET_LEVELS.length + '</span><p class="story">' + fmt(lv.story) + '</p><ul class="clues">' + lv.clues.map(c => '<li>' + fmt(c) + '</li>').join('') + '</ul><div class="stamp" aria-hidden="true">საქმე გახსნილია</div></div>'
+    + '<div class="goal"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span><b>მიზანი</b>' + goalTxt + '</span></div>'
+    + '<div class="row" style="justify-content:space-between"><h3>' + (lv.key === 'Name' ? 'ეჭვმიტანილები' : 'ჩეკები') + ' · <span class="mono">' + lv.src + '</span></h3><div class="seg"><button data-v="table" aria-pressed="true">ცხრილი</button><button data-v="json" aria-pressed="false">JSON</button></div></div><div id="dview"></div></div>'
+    + '<div class="panel"><h3>შენი LINQ query</h3><div class="qed" id="qed"></div>'
+    + '<div class="row" style="justify-content:space-between"><span class="note">აირჩიე მეთოდი. ყველა LINQ მეთოდი აქაა, სწორი შენ უნდა გამოიცნო.</span><button class="btn sm" id="btn-ref">LINQ ცნობარი</button></div>'
+    + '<div class="row" id="ops"></div><div class="hintbox" id="ref" hidden></div>'
+    + '<div class="row" style="justify-content:space-between;align-items:baseline"><h3>შედეგი</h3><span class="rtype mono" id="rtype"></span></div><div class="qres" id="qout"></div>'
     + '<div class="hintbox" id="hint" hidden></div><div class="fb" id="fb"></div>'
-    + '<div class="row end"><button class="btn sm" id="btn-hint">მინიშნება</button><button class="btn sm" id="btn-reset">გასუფთავება</button><button class="btn primary" id="btn-go">' + (lv.goal.type === 'one' ? 'დააკავე' : 'უპასუხე') + '</button></div></div></div>';
+    + '<div class="row end"><button class="btn sm" id="btn-hint">მინიშნება</button><button class="btn sm" id="btn-reset">გასუფთავება</button><button class="btn primary" id="btn-go">' + (g === 'one' ? 'დააკავე' : 'უპასუხე') + '</button></div></div></div>';
   $$('.seg button', stage).forEach(b => b.addEventListener('click', () => { view = b.dataset.v; $$('.seg button', stage).forEach(x => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
   $('#btn-hint', stage).addEventListener('click', () => { hintShown = true; const h = $('#hint', stage); h.hidden = false; h.innerHTML = fmt(lv.hint); });
+  $('#btn-ref', stage).addEventListener('click', () => {
+    const r = $('#ref', stage); r.hidden = !r.hidden; if (!r.hidden) hintShown = true;
+    r.innerHTML = '<b>LINQ ცნობარი</b> <span class="note">(ცნობარის გახსნა ვარსკვლავს აკლებს, ისევე როგორც მინიშნება)</span><dl class="ref">' + OPS.map(o => '<dt class="mono">' + o + '</dt><dd>' + OPINFO[o] + '</dd>').join('') + '</dl>';
+  });
   $('#btn-reset', stage).addEventListener('click', () => { steps = []; sfx.del(); draw(); });
   $('#btn-go', stage).addEventListener('click', submit);
-  function addOp(op){
-    const st = {op};
-    if (op === 'Where') { st.f = fields.find(f => f !== 'Name') || fields[0]; st.cmp = '=='; st.v = valuesOf(lv.data, st.f)[0]; }
-    if (op === 'OrderBy' || op === 'OrderByDescending') st.f = 'Age';
-    if (op === 'Select') st.f = 'Car';
+  function addOp(op, st0){
+    const st = {op}, objMode = st0.elem === 'obj';
+    if (PRED.includes(op)) { st.f = fields.find(f => f !== lv.key) || fields[0]; st.cmp = '=='; st.v = valuesOf(lv.data, st.f)[0]; }
+    if (KEYSEL.includes(op)) st.f = op === 'Select' ? (fields.includes('Car') ? 'Car' : fields.find(f => f !== lv.key)) : (numF[0] || fields[0]);
+    if (AGG.includes(op) && objMode) st.f = numF[0];
+    if (NUMARG.includes(op)) st.n = 1;
     steps.push(st); sfx.add(); draw();
   }
   function sel(opts, cur, attr){ return '<select ' + attr + '>' + opts.map(o => '<option value="' + esc(JSON.stringify(o)) + '"' + (o === cur ? ' selected' : '') + '>' + esc(typeof o === 'string' && attr.includes('val') ? lit(o) : String(o)) + '</option>').join('') + '</select>'; }
   function draw(){
-    const qed = $('#qed', stage);
-    let h = '<div class="ln"><span class="k">var</span> result = suspects</div>';
+    const r = detEval(lv, steps), qed = $('#qed', stage), v = lv.src[0];
+    let h = '<div class="ln"><span class="k">var</span> result = ' + lv.src + '</div>';
     steps.forEach((st, i) => {
+      const ctx = r.at[i] || {elem:'obj'}, objMode = ctx.elem === 'obj';
       let inner = '';
-      const numF = fields.filter(f => typeof getF(lv.data[0], f) === 'number');
-      if (st.op === 'Where') {
-        const vals = valuesOf(lv.data, st.f), isBool = typeof vals[0] === 'boolean', isNum = typeof vals[0] === 'number';
+      const fsel = (list, cur) => sel(list, cur, 'data-i="' + i + '" data-k="f"');
+      if (PRED.includes(st.op) && objMode) {
+        const vals = valuesOf(lv.data, st.f), isNum = typeof vals[0] === 'number';
         const cmps = isNum ? ['==', '!=', '>', '<', '>=', '<='] : ['==', '!='];
-        inner = '<span class="p">(s => s.</span>' + sel(fields, st.f, 'data-i="' + i + '" data-k="f"') + ' ' + sel(cmps, st.cmp, 'data-i="' + i + '" data-k="cmp"') + ' ' + sel(vals, st.v, 'data-i="' + i + '" data-k="v" data-val') + '<span class="p">)</span>';
-        void isBool;
-      } else if (st.op === 'OrderBy' || st.op === 'OrderByDescending') inner = '<span class="p">(s => s.</span>' + sel(numF.concat(fields.filter(f => !numF.includes(f))), st.f, 'data-i="' + i + '" data-k="f"') + '<span class="p">)</span>';
-      else if (st.op === 'Select') inner = '<span class="p">(s => s.</span>' + sel(fields, st.f, 'data-i="' + i + '" data-k="f"') + '<span class="p">)</span>';
-      else inner = '<span class="p">()</span>';
+        inner = '<span class="p">(' + v + ' => ' + v + '.</span>' + fsel(fields, st.f) + ' ' + sel(cmps, st.cmp, 'data-i="' + i + '" data-k="cmp"') + ' ' + sel(vals, st.v, 'data-i="' + i + '" data-k="v" data-val') + '<span class="p">)</span>';
+      } else if (KEYSEL.includes(st.op) && objMode) inner = '<span class="p">(' + v + ' => ' + v + '.</span>' + fsel(st.op === 'Select' ? fields : numF.concat(fields.filter(f => !numF.includes(f))), st.f) + '<span class="p">)</span>';
+      else if (AGG.includes(st.op) && objMode) inner = '<span class="p">(' + v + ' => ' + v + '.</span>' + fsel(numF, st.f) + '<span class="p">)</span>';
+      else if (NUMARG.includes(st.op)) inner = '<span class="p">(</span>' + sel([1, 2, 3, 4, 5], st.n, 'data-i="' + i + '" data-k="n"') + '<span class="p">)</span>';
+      else inner = '<span class="p">(' + (PRED.includes(st.op) || KEYSEL.includes(st.op) ? '…' : '') + ')</span>';
       h += '<div class="ln"><span class="ind"></span><span class="m">.' + st.op + '</span>' + inner + '<button class="x" data-del="' + i + '" aria-label="წაშლა">×</button></div>';
     });
     h += '<div class="ln"><span class="ind"></span><span class="p">;</span></div>';
     qed.innerHTML = h;
     $$('select', qed).forEach(s => s.addEventListener('change', () => {
-      const st = steps[Number(s.dataset.i)], v = JSON.parse(s.value);
-      st[s.dataset.k] = v;
-      if (s.dataset.k === 'f' && st.op === 'Where') { st.v = valuesOf(lv.data, st.f)[0]; const isNum = typeof st.v === 'number'; if (!isNum && !['==', '!='].includes(st.cmp)) st.cmp = '=='; }
+      const st = steps[Number(s.dataset.i)], val = JSON.parse(s.value);
+      st[s.dataset.k] = val;
+      if (s.dataset.k === 'f' && PRED.includes(st.op)) { st.v = valuesOf(lv.data, st.f)[0]; if (typeof st.v !== 'number' && !['==', '!='].includes(st.cmp)) st.cmp = '=='; }
       sfx.click(); draw();
     }));
     $$('[data-del]', qed).forEach(b => b.addEventListener('click', () => { steps.splice(Number(b.dataset.del), 1); sfx.del(); draw(); }));
+    const nx = r.next || {kind:'err'}, last = steps.length ? steps[steps.length - 1].op : '';
+    const can = o => {
+      if (r.err || nx.kind !== 'seq') return false;
+      if (nx.elem === 'val' && (PRED.includes(o) || KEYSEL.includes(o))) return false;
+      if (nx.elem === 'val' && (o === 'Sum' || o === 'Average') && nx.vt !== 'int') return false;
+      if (o.startsWith('ThenBy') && !nx.ordered) return false;
+      return true;
+    };
     const ops = $('#ops', stage);
-    ops.innerHTML = lv.ops.map(o => '<button class="opbtn" data-op="' + o + '"' + (terminal() || (afterSelect() && !['First', 'Count'].includes(o)) ? ' disabled' : '') + '>+ .' + o + '(' + (['First', 'Count'].includes(o) ? '' : '…') + ')</button>').join('');
-    $$('[data-op]', ops).forEach(b => b.addEventListener('click', () => addOp(b.dataset.op)));
-    const r = detEval(lv.data, steps), out = $('#qout', stage);
+    ops.innerHTML = OPS.map(o => '<button class="opbtn' + (TERM.includes(o) ? ' term' : '') + '" data-op="' + o + '"' + (can(o) ? '' : ' disabled') + '>.' + o + '(' + (PRED.includes(o) || KEYSEL.includes(o) || (AGG.includes(o) && nx.elem === 'obj') || NUMARG.includes(o) ? '…' : '') + ')</button>').join('');
+    $$('[data-op]', ops).forEach(b => b.addEventListener('click', () => addOp(b.dataset.op, nx)));
+    void last;
+    const out = $('#qout', stage);
+    $('#rtype', stage).textContent = r.err ? 'exception' : r.type;
     if (r.err) out.innerHTML = '<span class="err-x">' + esc(r.err) + '</span>' + (r.ka ? '<span class="note">' + esc(r.ka) + '</span>' : '');
     else if (Array.isArray(r.v)) {
-      if (r.v.length && typeof r.v[0] === 'object') out.innerHTML = '<span class="note">' + r.v.length + ' ეჭვმიტანილი</span><div class="chips">' + r.v.map(d => '<span class="chip">' + esc(d.Name) + '</span>').join('') + '</div>';
-      else out.innerHTML = '<span class="note">' + r.v.length + ' მნიშვნელობა</span><div class="chips">' + r.v.map(v => '<span class="chip mono">' + esc(lit(v)) + '</span>').join('') + '</div>';
+      if (r.elem === 'obj') out.innerHTML = '<span class="note">' + r.v.length + ' ელემენტი</span><div class="chips">' + r.v.map(d => '<span class="chip">' + esc(String(rowLabel(lv, d))) + '</span>').join('') + '</div>';
+      else out.innerHTML = '<span class="note">' + r.v.length + ' მნიშვნელობა</span><div class="chips">' + r.v.map(x => '<span class="chip mono">' + esc(lit(x)) + '</span>').join('') + '</div>';
     } else if (r.v && typeof r.v === 'object') out.innerHTML = '<span class="note">ერთი ობიექტი</span><pre class="code">' + jhl(JSON.stringify(r.v, null, 2)) + '</pre>';
-    else out.innerHTML = '<span class="note">' + (typeof r.v === 'number' ? 'int' : 'string') + '</span><span class="big">' + esc(lit(r.v)) + '</span>';
-    const keep = new Set(((r.objs) || lv.data).map(d => d.Name));
+    else out.innerHTML = '<span class="big">' + esc(lit(r.v)) + '</span>';
+    const keep = new Set((r.objs || lv.data).map(d => d[lv.key]));
+    const culprit = solved && (g === 'one') ? lv.goal.key : null;
     const dv = $('#dview', stage);
     if (view === 'table') {
-      dv.innerHTML = '<div class="tbl-wrap"><table><thead><tr>' + fields.map(f => '<th>' + f + '</th>').join('') + '</tr></thead><tbody>' + lv.data.map(d => '<tr class="' + (steps.length ? (keep.has(d.Name) ? 'in' : 'out') : '') + '">' + fields.map(f => { const v = getF(d, f); return '<td class="' + (typeof v === 'number' ? 'num' : '') + '">' + esc(String(v)) + '</td>'; }).join('') + '</tr>').join('') + '</tbody></table></div>';
+      dv.innerHTML = '<div class="tbl-wrap"><table><thead><tr>' + fields.map(f => '<th>' + f + '</th>').join('') + '</tr></thead><tbody>' + lv.data.map(d => '<tr class="' + (d[lv.key] === culprit ? 'caught ' : '') + (steps.length && !r.err ? (keep.has(d[lv.key]) ? 'in' : 'out') : '') + '">' + fields.map(f => { const x = getF(d, f); return '<td class="' + (typeof x === 'number' ? 'num' : '') + '">' + esc(String(x)) + '</td>'; }).join('') + '</tr>').join('') + '</tbody></table></div>';
     } else dv.innerHTML = '<pre class="code" style="max-height:340px">' + jhl(JSON.stringify(lv.data, null, 2)) + '</pre>';
   }
   function submit(){
-    const r = detEval(lv.data, steps), fb = $('#fb', stage); let ok = false, msg = '';
+    if (solved) return;
+    const r = detEval(lv, steps), fb = $('#fb', stage); let ok = false, msg = '';
+    const listy = Array.isArray(r.v);
     if (r.err) msg = 'query შეცდომას აგდებს. ჯერ ის გაასწორე.';
-    else if (lv.goal.type === 'one') {
-      const one = Array.isArray(r.v) ? (r.v.length === 1 && typeof r.v[0] === 'object' ? r.v[0] : null) : (r.v && typeof r.v === 'object' ? r.v : null);
-      if (one && one.Name === lv.goal.name) ok = true;
-      else if (Array.isArray(r.v) && r.v.length > 1) msg = 'ჯერ კიდევ ' + r.v.length + ' ეჭვმიტანილია. დაამატე კიდევ ერთი ფილტრი ან დალაგება.';
-      else if (Array.isArray(r.v) && !r.v.length) msg = 'არავინ დარჩა: ფილტრი ზედმეტად მკაცრია. შეამოწმე ოპერატორები და მნიშვნელობები.';
-      else if (one) msg = one.Name + ' უდანაშაულოა. გადაამოწმე, ყველა მინიშნებას ითვალისწინებს თუ არა query.';
-      else msg = 'შედეგი ადამიანი უნდა იყოს.';
+    else if (g === 'one') {
+      const one = listy ? (r.v.length === 1 && r.elem === 'obj' ? r.v[0] : null) : (r.v && typeof r.v === 'object' ? r.v : null);
+      if (one && one[lv.key] === lv.goal.key) ok = true;
+      else if (listy && r.v.length > 1) msg = 'ჯერ კიდევ ' + r.v.length + ' ელემენტია. დაამატე ფილტრი ან აიღე ერთი.';
+      else if (listy && !r.v.length) msg = 'არავინ დარჩა: ფილტრი ზედმეტად მკაცრია. შეამოწმე ოპერატორები და მნიშვნელობები.';
+      else if (one) msg = rowLabel(lv, one) + ' არ არის ის, ვისაც ვეძებთ. გადაამოწმე, ყველა მინიშნებას ითვალისწინებს თუ არა query.';
+      else msg = 'შედეგი ' + lv.ent + ' უნდა იყოს, ახლა კი ' + r.type + '-ია.';
+    } else if (g === 'null') {
+      if (r.kind === 'one' && r.v === null) ok = true;
+      else if (listy) msg = 'შედეგი ჯერ სიაა (' + r.type + '). საჭიროა ერთი ელემენტი ან null.';
+      else msg = 'შედეგი ' + r.type + '-ია. მცხეთაში ალიბის დაუდასტურებელი არავინაა: სწორი query null-ს აბრუნებს.';
+    } else if (g === 'list') {
+      const want = lv.goal.v;
+      if (listy && r.v.length === want.length && r.v.every((x, i) => x === want[i])) ok = true;
+      else if (!listy) msg = 'შედეგი სია უნდა იყოს, ახლა კი ' + r.type + '-ია.';
+      else if (r.elem === 'obj') msg = 'სიაში ჯერ მთელი ობიექტებია. საჭიროა მხოლოდ ნივთის სახელი.';
+      else msg = 'სია ჯერ არ ემთხვევა: ' + r.v.length + ' მნიშვნელობა. შეამოწმე დალაგება და რაოდენობა.';
     } else {
-      if (r.v === lv.goal.v) ok = true;
-      else if (Array.isArray(r.v)) msg = 'შედეგი ჯერ სიაა. პასუხი ერთი მნიშვნელობა უნდა იყოს: დაამატე `Count()` ან `First()`.';
+      const same = typeof r.v === 'number' && typeof lv.goal.v === 'number' ? Math.abs(r.v - lv.goal.v) < 1e-9 : r.v === lv.goal.v;
+      if (!listy && r.kind !== 'one' && same) ok = true;
+      else if (!listy && r.kind === 'one' && same) ok = true;
+      else if (listy) msg = 'შედეგი ჯერ სიაა (' + r.type + '). პასუხი ერთი მნიშვნელობა უნდა იყოს.';
+      else if (g === 'bool' && typeof r.v !== 'boolean') msg = 'პასუხი true ან false უნდა იყოს, ახლა კი ' + r.type + '-ია.';
+      else if (r.v && typeof r.v === 'object') msg = 'შედეგი მთელი ობიექტია. საჭიროა ერთი მნიშვნელობა.';
       else msg = 'პასუხი არასწორია (' + lit(r.v) + '). წაიკითხე მინიშნებები თავიდან.';
     }
+    if (ok && lv.need && !steps.some(s => s.op === lv.need)) { ok = false; msg = 'შედეგი სწორია, მაგრამ საქმე სხვა მეთოდს ითხოვს: წაიკითხე ამბავი თავიდან. რომელი მეთოდი ამოწმებს ზუსტად იმას, რასაც ამბავი ითხოვს?'; }
     if (ok) {
-      sfx.ok();
+      solved = true; sfx.ok();
       const st = Math.max(1, 3 - Math.min(2, wrong + (steps.length > lv.opt ? 1 : 0) + (hintShown ? 1 : 0)));
       fb.className = 'fb show ok'; fb.innerHTML = '<b>საქმე გაიხსნა!</b>';
-      setTimeout(() => win('det', idx, st, lv.learn), 450);
-    } else { wrong++; sfx.bad(); fb.className = 'fb show bad'; fb.innerHTML = '<b>ჯერ არა</b>' + fmt(msg); stage.querySelector('.det').classList.remove('shake'); void stage.offsetWidth; $('#qed', stage).classList.add('shake'); setTimeout(() => $('#qed', stage) && $('#qed', stage).classList.remove('shake'), 400); }
+      $('.paper', stage).classList.add('solved'); draw();
+      setTimeout(() => win('det', idx, st, lv.learn), 1100);
+    } else { wrong++; sfx.bad(); fb.className = 'fb show bad'; fb.innerHTML = '<b>ჯერ არა</b>' + fmt(msg); $('#qed', stage).classList.add('shake'); setTimeout(() => $('#qed', stage) && $('#qed', stage).classList.remove('shake'), 400); }
   }
   draw();
 }
@@ -1036,7 +1203,7 @@ const ART = {
   maze:'<svg viewBox="0 0 96 96"><rect x="10" y="10" width="76" height="76" rx="10" fill="#ECE4F8"/><path d="M22 22h52M22 22v52M38 38h36M38 38v36M54 54h20" stroke="#7F57C2" stroke-width="7" stroke-linecap="round" fill="none"/><circle cx="62" cy="68" r="7" fill="#7F57C2"/></svg>',
 };
 const WORLDS = [
-  {id:'det', cls:'', name:'კოდის დეტექტივი', topics:['LINQ', 'JSON', 'ლოგიკა'], desc:'ამოხსენი საქმეები: ეჭვმიტანილების JSON-ს LINQ-ით ფილტრავ, ალაგებ და ითვლი.', levels:DET_LEVELS, mount:mountDetective, c:'var(--det)', cs:'var(--det-soft)'},
+  {id:'det', cls:'', name:'კოდის დეტექტივი', topics:['LINQ', 'JSON', 'ლოგიკა'], desc:'18 საქმე: ეჭვმიტანილები და სალაროს ჩეკები JSON-ში. ყველა LINQ მეთოდი შენს ხელთაა, სწორი უნდა გამოიცნო.', levels:DET_LEVELS, mount:mountDetective, c:'var(--det)', cs:'var(--det-soft)'},
   {id:'fac', cls:'fac', name:'რობოტების ქარხანა', topics:['OOP', 'კლასები', 'ინტერფეისები'], desc:'ააწყე კლასები შეკვეთების მიხედვით. სწორად აწყობილი რობოტი ცოცხლდება, კომპილატორი კი შეცდომებს გიხსნის.', levels:FAC_LEVELS, mount:mountFactory, c:'var(--fac)', cs:'var(--fac-soft)'},
   {id:'shop', cls:'shop', name:'ციფრული მაღაზია', topics:['CRUD', 'HTTP', 'JSON'], desc:'იყავი მაღაზიის API: GET, POST, PUT, DELETE, სწორი JSON და სტატუს კოდები.', levels:SHOP_LEVELS, mount:mountShop, c:'var(--shop)', cs:'var(--shop-soft)'},
   {id:'maze', cls:'maze', name:'ლოგიკის ლაბირინთი', topics:['ალგორითმები', 'ციკლები', 'პირობები'], desc:'დააპროგრამე რობოტი ბლოკებით. ბლოკები შეზღუდულია, ამიტომ ციკლებსა და პირობებს თვითონ აღმოაჩენ.', levels:MAZE_LEVELS, mount:mountMaze, c:'var(--maze)', cs:'var(--maze-soft)'},
@@ -1069,13 +1236,13 @@ function render(){
   } else if (view.s === 'world') {
     const w = W(view.w);
     v.innerHTML = '<section class="wmap"><div class="whead"><span class="art" style="background:' + w.cs + '">' + ART[w.id] + '</span><div><span class="eyebrow">' + w.topics.join(' · ') + '</span><h1>' + esc(w.name) + '</h1><p class="note">' + esc(w.desc) + '</p></div></div>'
-      + '<div class="levels">' + w.levels.map((l, i) => { const st = starsOf(w.id, i), un = unlocked(w.id, i); return '<button class="lv ' + (st ? 'done' : '') + '" style="--c:' + w.c + ';--cs:' + w.cs + '" data-i="' + i + '"' + (un ? '' : ' disabled') + '><span class="row"><span class="n">' + (i + 1) + '</span>' + (un ? starsHTML(st) : '<span class="note">დაკეტილია</span>') + '</span><b>' + esc(l.title) + '</b><small>' + esc(l.concept) + '</small></button>'; }).join('') + '</div>'
+      + '<div class="levels">' + w.levels.map((l, i) => { const st = starsOf(w.id, i), un = unlocked(w.id, i); return '<button class="lv ' + (st ? 'done' : '') + '" style="--c:' + w.c + ';--cs:' + w.cs + '" data-i="' + i + '"' + (un ? '' : ' disabled') + '><span class="row"><span class="n">' + (i + 1) + '</span>' + (un ? starsHTML(st) : '<span class="note">დაკეტილია</span>') + '</span><b>' + esc(l.title) + '</b><small>' + esc(w.id === 'det' && !st ? '? საიდუმლო მეთოდი' : l.concept) + '</small></button>'; }).join('') + '</div>'
       + '<div><button class="btn" id="back">← ყველა სამყარო</button></div></section>';
     $$('[data-i]', v).forEach(b => b.addEventListener('click', () => go({s:'level', w:w.id, i:Number(b.dataset.i)})));
     $('#back', v).addEventListener('click', () => go({s:'hub'}));
   } else {
     const w = W(view.w), lv = w.levels[view.i];
-    v.innerHTML = '<div class="lhead"><button class="btn sm" id="back">←</button><div class="tt"><span class="eyebrow">' + esc(w.name) + ' · დონე ' + (view.i + 1) + ' / ' + w.levels.length + ' · ' + esc(lv.concept) + '</span><h1>' + esc(lv.title) + '</h1></div>' + starsHTML(starsOf(w.id, view.i)) + '</div><div id="stage"></div>';
+    v.innerHTML = '<div class="lhead"><button class="btn sm" id="back">←</button><div class="tt"><span class="eyebrow">' + esc(w.name) + ' · დონე ' + (view.i + 1) + ' / ' + w.levels.length + ' · ' + esc(w.id === 'det' && !starsOf(w.id, view.i) ? 'რომელი მეთოდი?' : lv.concept) + '</span><h1>' + esc(lv.title) + '</h1></div>' + starsHTML(starsOf(w.id, view.i)) + '</div><div id="stage"></div>';
     $('#back', v).addEventListener('click', () => go({s:'world', w:w.id}));
     w.mount($('#stage', v), lv, view.i);
   }

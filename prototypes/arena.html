@@ -1004,7 +1004,7 @@ async function joinGame(){
   gr.onPeers(onPeers, onRoomErr);
   gr.presence({r:'g', n:myName, hr:myHero, a:[]}).catch(() => {});
   screen = 'room';
-  joinTimer = setTimeout(() => { if (!S && role === 'g') { homeErr = 'ამ კოდით ოთახი ვერ მოიძებნა.'; resetHome(); } }, 8000);
+  joinTimer = setTimeout(() => { if (!S && role === 'g') { homeErr = 'ამ კოდით ოთახი ვერ მოიძებნა.'; resetHome(); } }, 25000);
   render();
 }
 function startLocal(mode){

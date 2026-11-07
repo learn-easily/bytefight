@@ -258,6 +258,7 @@ pre.code{margin:0;background:var(--code);border:1px solid var(--line);border-rad
 </div>
 <main class="panel" id="view" aria-live="polite"></main>
 
+<script src="net.js"></script>
 <script>
 'use strict';
 /* =================== game constants =================== */
@@ -507,7 +508,8 @@ addEventListener('keydown', audio);
 syncSndButtons();
 
 /* =================== capabilities =================== */
-const useCap = n => (window.claude && typeof window.claude.use === 'function') ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
+const useCap = n => (window.claude && typeof window.claude.use === 'function') ? window.claude.use(n).catch(() => null)
+  : Promise.resolve(n === 'room' && window.bytefightRoom ? window.bytefightRoom : null);   // net.js on GitHub Pages
 const roomP = useCap('room');
 
 /* =================== session state =================== */
@@ -739,7 +741,7 @@ async function connectRoom(btn){
   if (btn) { btn.disabled = true; btn.textContent = 'კავშირი…'; }
   room = room || await roomP;
   if (btn) { btn.disabled = false; btn.textContent = label; }
-  if (!room) { homeErr = 'ორმოთამაშიანი რეჟიმი აქ ვერ ჩაირთო. გახსენი გვერდი claude.ai-ზე შესული ანგარიშით. ბოტთან და ბოსთან მარტო ბრძოლა ამ დროსაც მუშაობს.'; render(); }
+  if (!room) { homeErr = 'ორმოთამაშიანი რეჟიმი აქ ვერ ჩაირთო. შეამოწმე ინტერნეტი და სცადე თავიდან. ბოტთან და ბოსთან მარტო ბრძოლა ამ დროსაც მუშაობს.'; render(); }
   return room;
 }
 function needName(){
@@ -1502,7 +1504,7 @@ function lobbyHTML(){
   const boss = S.mode === 'boss';
   return '<section class="lobby"><span class="eyebrow">' + (boss ? 'ბოსის ოთახი' : 'დუელის ოთახი') + ' · კოდი</span><span class="room-code" id="room-code">' + esc(S.code) + '</span>'
     + '<button class="btn" id="btn-copy">კოდის კოპირება</button>'
-    + '<p class="note">მეგობარმა გახსნას ეს გვერდი თავისი claude.ai ანგარიშით, აირჩიოს გმირი და შეიყვანოს კოდი. ' + (boss ? 'ერთად დაუპირისპირდებით ბაგს.' : 'ბრძოლა ავტომატურად დაიწყება.') + '</p>'
+    + '<p class="note">მეგობარმა გახსნას ეს გვერდი თავის მოწყობილობაზე, აირჩიოს გმირი და შეიყვანოს კოდი. ' + (boss ? 'ერთად დაუპირისპირდებით ბაგს.' : 'ბრძოლა ავტომატურად დაიწყება.') + '</p>'
     + '<div class="vs"><span class="p1">' + esc(nm('h')) + '</span><span class="v">' + (boss ? 'და' : 'vs') + '</span><span class="p2 wait">ველოდებით<span class="dots"></span></span></div>'
     + '<button class="link" id="btn-leave">გასვლა</button></section>';
 }

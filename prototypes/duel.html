@@ -232,6 +232,7 @@ td .first{color:var(--ok);font-size:.78rem;margin-left:6px}
   <main id="view" aria-live="polite"></main>
 </div>
 
+<script src="net.js"></script>
 <script>
 'use strict';
 /* ---------- question bank ---------- */
@@ -489,7 +490,8 @@ function hl(src){
 const codeBlock = src => '<pre class="code">' + hl(src) + '</pre>';
 
 /* ---------- capabilities ---------- */
-const useCap = n => (window.claude && typeof window.claude.use === 'function') ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
+const useCap = n => (window.claude && typeof window.claude.use === 'function') ? window.claude.use(n).catch(() => null)
+  : Promise.resolve(n === 'room' && window.bytefightRoom ? window.bytefightRoom : null);   // net.js on GitHub Pages
 const roomP = useCap('room');
 const sampleP = useCap('sample');
 
@@ -711,7 +713,7 @@ async function connectRoom(btn, label){
   if (btn) { btn.disabled = true; btn.textContent = 'კავშირი…'; }
   room = room || await roomP;
   if (btn) { btn.disabled = false; btn.textContent = label; }
-  if (!room) { homeErr = 'ორმოთამაშიანი რეჟიმი აქ ვერ ჩაირთო. გახსენი გვერდი claude.ai-ზე შესული ანგარიშით. მარტო ვარჯიში ამ დროსაც მუშაობს.'; render(); }
+  if (!room) { homeErr = 'ორმოთამაშიანი რეჟიმი აქ ვერ ჩაირთო. შეამოწმე ინტერნეტი და სცადე თავიდან. მარტო ვარჯიში ამ დროსაც მუშაობს.'; render(); }
   return room;
 }
 
@@ -875,7 +877,7 @@ function lobbyHTML(){
   return '<section class="lobby">'
     + '<div class="code-box"><span class="eyebrow">ოთახის კოდი</span><span class="room-code" id="room-code">' + esc(S.code) + '</span>'
     + '<button class="btn" id="btn-copy">კოდის კოპირება</button>'
-    + '<p class="note">მეორე მოთამაშემ ეს გვერდი თავისი claude.ai ანგარიშიდან უნდა გახსნას და კოდი შეიყვანოს. თამაში მაშინ დაიწყება, როცა ორივე სახელს ჩაწერს და „მზად ვარ“-ს დააჭერს.</p></div>'
+    + '<p class="note">მეორე მოთამაშემ ეს გვერდი თავის მოწყობილობაზე გახსნას და კოდი შეიყვანოს. თამაში მაშინ დაიწყება, როცა ორივე სახელს ჩაწერს და „მზად ვარ“-ს დააჭერს.</p></div>'
     + '<div class="players">'
     +   '<div class="pslot p1"><span class="who" id="who-h"></span><span class="pn" id="pn-h"></span><span class="rd" id="rd-h"></span></div>'
     +   '<div class="pslot p2"><span class="who" id="who-g"></span><span class="pn" id="pn-g"></span><span class="rd" id="rd-g"></span></div>'

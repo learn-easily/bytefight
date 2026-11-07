@@ -214,6 +214,9 @@ pre.code{margin:0;background:var(--code);border:1px solid var(--line);border-rad
 .earned .medal small{font-size:.74rem}
 .review{width:min(100%,760px);display:flex;flex-direction:column;gap:10px;text-align:left}
 .review h3{font-size:1.05rem;font-weight:800;text-align:center}
+.review h4{font-size:.95rem;font-weight:800;margin:8px 0 0}
+.rv-item.bad{border-left:4px solid var(--bad)} .rv-item.ok{border-left:4px solid var(--ok)}
+.claim.miss b{color:var(--bad)}
 .rv-item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .rv-item .q{font-weight:600}
 .rv-item .yours,.rv-item .right{font-size:.88rem;border-radius:8px;padding:7px 10px}
@@ -742,7 +745,7 @@ let S = null, offset = 0, lastSig = '', joinCode = '', joinTimer = null, hostMis
 let seenN = new Set(), myAns = [];
 let botNext = [0, 0, 0, 0], botCool = 0, recent = {e:[], m:[], h:[]}, revenge = [];
 const pend = [null, null, null, null], pendAt = [0, 0, 0, 0], lastPick = [null, null, null, null];
-let cardKey = [null, null, null, null], lockSeen = new Set(), tab = 0, mistakes = [];
+let cardKey = [null, null, null, null], lockSeen = new Set(), tab = 0, answers = [];
 let seenEv = 0, lastGid = '', endShown = '', builtKey = '', hudKey = '', medalsFor = '';
 let emoteSentAt = 0, lastEmN = '';
 const disp = {h:HPMAX, g:HPMAX, b:0};
@@ -864,11 +867,11 @@ function hostAnswer(p, sl, qid, choice){
     S.cards[sl] = newCard(sl);
     checkEnd(p);
   } else {
-    card.lk += p; S.st[p] = 0; S.sc[p].bad++;
+    // wrong: no lock, no stall. The card is replaced at once; the question comes back later as a revenge card.
+    S.st[p] = 0; S.sc[p].bad++;
     revenge.push({q:qid, tier:SLOT[sl].tier, at:now});
-    pushEv({k:'miss', by:p, sl, q:qid});
-    const open = players().filter(x => alive(x) && !card.lk.includes(x));
-    if (!open.length) { pushEv({k:'skip', sl, q:qid, c:q.c}); S.cards[sl] = newCard(sl); }
+    pushEv({k:'miss', by:p, sl, q:qid, pc:choice});
+    S.cards[sl] = newCard(sl);
   }
   pushHost();
 }
@@ -1006,7 +1009,7 @@ function startLocal(mode){
   screen = 'room'; startCountdown();
 }
 function resetClient(){
-  seenEv = 0; lastGid = ''; endShown = ''; medalsFor = ''; cardKey = [null, null, null, null]; lockSeen = new Set(); tab = 0; mistakes = [];
+  seenEv = 0; lastGid = ''; endShown = ''; medalsFor = ''; cardKey = [null, null, null, null]; lockSeen = new Set(); tab = 0; answers = [];
   Q.length = 0; busyUntil = 0; fireTarget = 0; resetFighters(); hudKey = '';
 }
 function resetHome(){
@@ -1045,14 +1048,15 @@ function syncFromState(){
 function ingest(){
   if (!S) return;
   if (S.gid !== lastGid) {
-    lastGid = S.gid; seenEv = 0; endShown = ''; medalsFor = ''; cardKey = [null, null, null, null]; lockSeen = new Set(); mistakes = []; fireTarget = 0;
+    lastGid = S.gid; seenEv = 0; endShown = ''; medalsFor = ''; cardKey = [null, null, null, null]; lockSeen = new Set(); answers = []; fireTarget = 0;
     syncFromState();
   }
   applyHeroes();
   for (const e of S.ev || []) {
     if (e.i <= seenEv) continue;
     seenEv = e.i;
-    if (['skip', 'atk', 'heal', 'shield', 'crit'].includes(e.k)) showClaim(e);
+    if (['miss', 'atk', 'heal', 'shield', 'crit'].includes(e.k)) showClaim(e);
+    if (e.by === role && BANK[e.q]) answers.push(e.k === 'miss' ? {q:e.q, c:e.pc, ok:false} : {q:e.q, c:e.c, ok:true});
     if (e.k !== 'skip') Q.push(e);
   }
 }
@@ -1060,15 +1064,11 @@ function showClaim(e){
   const q = BANK[e.q]; if (!q) return;
   const el = $('#claim-' + e.sl);
   if (el) {
-    const who = e.k === 'skip' ? 'ყველამ შეცდა' : (e.by === role ? 'შენ აიღე!' : nm(e.by) + '-მ აიღო');
-    el.className = 'claim show ' + (e.k === 'skip' ? '' : e.by === role ? 'me' : 'op');
+    const miss = e.k === 'miss';
+    const who = miss ? (e.by === role ? 'შეცდი!' : nm(e.by) + '-მ შეცდა') : (e.by === role ? 'შენ აიღე!' : nm(e.by) + '-მ აიღო');
+    el.className = 'claim show ' + (miss ? 'miss' : e.by === role ? 'me' : 'op');
     el.innerHTML = '<b>' + esc(who) + '</b><span>ახალი კითხვა…</span>';
     clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 900);
-  }
-  const ln = $('#learn');
-  if (ln) {
-    ln.innerHTML = '<span class="li">' + ICON.bulb + '</span><span class="lt"><b>' + fmt(q.p.length > 90 ? q.p.slice(0, 88) + '…' : q.p) + ' → ' + fmt(q.o[e.c]) + '</b><span>' + fmt(q.x) + '</span></span>';
-    ln.classList.remove('pop'); void ln.offsetWidth; ln.classList.add('pop');
   }
 }
 
@@ -1740,7 +1740,7 @@ function fightHTML(){
   const tabs = SLOT.map((s, i) => '<button class="tab ' + s.k + '" role="tab" id="tab-' + i + '" data-t="' + i + '" aria-selected="' + (i === tab) + '">' + ICON[s.k] + '<span>' + s.name + '</span><span class="tv">' + slotVal(i, hero) + '</span></button>').join('');
   const cards = SLOT.map((s, i) => '<article class="qc ' + s.k + '" id="qc-' + i + '" data-sl="' + i + '"><header>' + ICON[s.k] + '<span>' + s.name + '</span><span class="val">' + slotVal(i, hero) + '</span><span class="rvb">რევანში ×2</span><span class="tag" id="tag-' + i + '"></span></header><div class="qbody"></div><div class="claim" id="claim-' + i + '"></div></article>').join('');
   return '<section class="fight">'
-    + '<div class="learn" id="learn"><span class="li">' + ICON.bulb + '</span><span class="lt"><b>აქ გამოჩნდება ახსნა</b><span>ყოველი აღებული ბარათის შემდეგ ნახავ სწორ პასუხს და მიზეზს.</span></span></div>'
+
     + '<div class="tabs" role="tablist">' + tabs + '</div><div class="cards" id="cards" data-tab="' + tab + '">' + cards + '</div>'
     + '<p class="hint">ვინც პირველი უპასუხებს სწორად, ის იღებს ბარათს. შეცდომის შემდეგ ამ ბარათზე ვეღარ უპასუხებ, დანარჩენი სამი კი ღიაა.</p></section>';
 }
@@ -1770,14 +1770,18 @@ function endHTML(){
   table += '</div>';
   const mine = medalsOf(me);
   const earned = mine.length ? '<div class="earned">' + mine.map(id => { const m = MEDALS.find(x => x.id === id); return '<div class="medal' + (newMedals.includes(id) ? ' new' : '') + '"><span class="me">' + m.e + '</span><span><b>' + m.n + '</b><br><small>' + (newMedals.includes(id) ? 'ახალი მედალი!' : m.d) + '</small></span></div>'; }).join('') + '</div>' : '<p class="note">ამ ბრძოლაში მედალი არ აგიღია. მედლების სია მთავარ გვერდზეა.</p>';
-  const review = mistakes.length
-    ? '<div class="review"><h3>შენი შეცდომები · ' + mistakes.length + '</h3>' + mistakes.map(m => {
-        const q = BANK[m.q]; if (!q) return '';
-        return '<div class="rv-item"><p class="q">' + fmt(q.p) + '</p>' + (q.code ? '<pre class="code">' + hlq(q.code) + '</pre>' : '')
-          + '<div class="yours"><b>შენ: ' + fmt(q.o[m.c]) + '</b>' + fmt(q.w[m.c] || '') + '</div>'
-          + '<div class="right"><b>სწორი: ' + fmt(q.o[q.c]) + '</b>' + fmt(q.x) + '</div></div>';
-      }).join('') + '</div>'
-    : '<p class="note">შეცდომა არ დაგიშვია. ყოჩაღ! 🎉</p>';
+  const bad = answers.filter(a => !a.ok), good = answers.filter(a => a.ok);
+  const item = a => {
+    const q = BANK[a.q]; if (!q) return '';
+    return '<div class="rv-item ' + (a.ok ? 'ok' : 'bad') + '"><span class="qk qk-' + q.k + '">' + KINDS[q.k] + '</span><p class="q">' + (a.ok ? '✅ ' : '❌ ') + fmt(q.p) + '</p>' + (q.code ? '<pre class="code">' + hlq(q.code) + '</pre>' : '')
+      + (a.ok ? '' : '<div class="yours"><b>შენ: ' + fmt(q.o[a.c]) + '</b>' + fmt(q.w[a.c] || '') + '</div>')
+      + '<div class="right"><b>' + (a.ok ? 'შენ და სწორია: ' : 'სწორი: ') + fmt(q.o[q.c]) + '</b>' + fmt(q.x) + '</div></div>';
+  };
+  const review = answers.length
+    ? '<div class="review"><h3>შენი პასუხები · ' + answers.length + '</h3><p class="note" style="text-align:center">✅ ' + good.length + ' სწორი · ❌ ' + bad.length + ' შეცდომა</p>'
+      + (bad.length ? '<h4>შეცდომები</h4>' + bad.map(item).join('') : '')
+      + (good.length ? '<h4>სწორი პასუხები</h4>' + good.map(item).join('') : '') + '</div>'
+    : '<p class="note">ამ ბრძოლაში კითხვას არ უპასუხე.</p>';
   return '<section class="endp"><p class="eyebrow">' + esc(why) + '</p><h2>' + esc(title) + '</h2>' + table + earned
     + '<div class="end-actions">' + (role === 'h' ? '<button class="btn primary" id="btn-again">' + (boss ? 'ხელახლა ბაგთან' : 'რევანში') + '</button>' : '<p class="note">ახალ ბრძოლას მასპინძელი იწყებს.</p>')
     + '<button class="btn" id="btn-home">მთავარზე</button></div>' + review + '</section>';
@@ -1847,7 +1851,6 @@ function updateCards(){
       lockSeen.add(lockKey); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
       const lp = lastPick[sl], q = BANK[cd.q];
       if (lp && lp.q === cd.q) {
-        mistakes.push({q:cd.q, c:lp.c});
         const lm = $('.lockmsg', el);
         if (lm) lm.innerHTML = '<b>„' + fmt(q.o[lp.c]) + '" არასწორია</b>' + fmt(q.w[lp.c] || 'სცადე სხვა ბარათი.') + ' სწორ პასუხს ბარათის აღების შემდეგ ნახავ.';
         $$('.opt', el).forEach(b => b.classList.toggle('picked', Number(b.dataset.c) === lp.c));

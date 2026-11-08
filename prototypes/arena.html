@@ -805,8 +805,8 @@ function botDelay(sl){
   const [a, b] = BOT_DELAY[sl], lead = S.hp.g - S.hp.h;
   return rnd(a, b) * (lead > 25 ? 1.5 : lead < -25 ? .85 : 1);   // the bot eases off when far ahead
 }
-/* Cards are per player (S.pc.h / S.pc.g). They start equal; a correct answer replaces that card for everyone
-   who still shows it (the race), a wrong answer replaces it only for the player who missed. */
+/* Cards are per player (S.pc.h / S.pc.g). They start equal; any answer, right or wrong, replaces the card
+   only for the player who answered, so an opponent's card never changes while they are reading it. */
 const shownQs = () => new Set(['h', 'g'].flatMap(x => (S.pc[x] || []).map(c => c && c.q)));
 function newCard(sl, who){
   const tier = SLOT[sl].tier, now = Date.now(), shown = shownQs();
@@ -867,8 +867,7 @@ function hostAnswer(p, sl, qid, choice){
       if (k === 'crit' && !res.b && !res.dg) sc.crit++;
     }
     pushEv(ev);
-    const nc = newCard(sl);
-    for (const x of ['h', 'g']) if (S.pc[x][sl] && S.pc[x][sl].q === qid) setCard(x, sl, nc);
+    setCard(p, sl, newCard(sl, p));   // only the answering player's card changes; the opponent keeps reading theirs
     checkEnd(p);
   } else {
     // wrong: no lock, no stall. The card is replaced at once; the question comes back later as a revenge card.
@@ -1066,7 +1065,7 @@ function ingest(){
 }
 function showClaim(e){
   const q = BANK[e.q]; if (!q) return;
-  if (e.by !== role && (e.k === 'miss' || cardKey[e.sl] !== e.q)) return;   // the opponent's miss, or a card I no longer show: don't disturb my card
+  if (e.by !== role) return;   // the opponent's answers never touch my cards
   const el = $('#claim-' + e.sl);
   if (el) {
     const miss = e.k === 'miss';
